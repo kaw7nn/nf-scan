@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ConsultarNfseResposta>
+  <ListaNfse>
+    <CompNfse>
+      <Nfse>
+        <InfNfse>
+          <NumeroNfse>4521</NumeroNfse>
+          <CodigoVerificacao>ABC12345</CodigoVerificacao>
+          <DataEmissao>2026-09-10T14:05:00</DataEmissao>
+          <Competencia>2026-09-01T00:00:00</Competencia>
+          <Servico>
+            <Valores>
+              <ValorServicos>12000.00</ValorServicos>
+              <ValorDeducoes>0.00</ValorDeducoes>
+              <ValorPis>78.00</ValorPis>
+              <ValorCofins>360.00</ValorCofins>
+              <ValorIr>0.00</ValorIr>
+              <ValorCsll>0.00</ValorCsll>
+              <IssRetido>2</IssRetido>
+              <ValorIss>600.00</ValorIss>
+              <Aliquota>5.00</Aliquota>
+              <ValorLiquidoNfse>11562.00</ValorLiquidoNfse>
+            </Valores>
+            <ItemListaServico>0702</ItemListaServico>
+            <Discriminacao>Execucao de alvenaria estrutural - Obra Alfa</Discriminacao>
+            <CodigoMunicipio>3550308</CodigoMunicipio>
+          </Servico>
+          <PrestadorServico>
+            <IdentificacaoPrestador>
+              <Cnpj>11222333000181</Cnpj>
+              <InscricaoMunicipal>987654</InscricaoMunicipal>
+            </IdentificacaoPrestador>
+            <RazaoSocial>Servicos de Engenharia Ltda</RazaoSocial>
+            <Endereco>
+              <Endereco>Rua C</Endereco><Numero>50</Numero>
+              <Bairro>Centro</Bairro><CodigoMunicipio>3550308</CodigoMunicipio>
+              <Uf>SP</Uf><Cep>01002000</Cep>
+            </Endereco>
+          </PrestadorServico>
+          <TomadorServico>
+            <IdentificacaoTomador>
+              <CpfCnpj><Cnpj>11444777000161</Cnpj></CpfCnpj>
+            </IdentificacaoTomador>
+            <RazaoSocial>Construtora Exemplo Ltda</RazaoSocial>
+          </TomadorServico>
+        </InfNfse>
+      </Nfse>
+    </CompNfse>
+  </ListaNfse>
+</ConsultarNfseResposta>

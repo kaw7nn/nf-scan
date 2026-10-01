@@ -156,3 +156,13 @@ def test_total_zerado_nao_divide_por_zero() -> None:
         )
     )
     assert "TOTAL_DIVERGENTE" not in _codigos(nota)
+
+
+def test_chave_de_cinquenta_digitos_da_nfse_nao_e_julgada_pelo_mod11_da_nfe() -> None:
+    # A chave da NFS-e nacional tem 50 dígitos e estrutura própria. Aplicar o
+    # DV da NF-e marcaria toda NFS-e como inválida.
+    nota = _nota(
+        documento=Documento(tipo="nfse", chave_acesso="1" * 50),
+        totais=Totais(valor_total=Decimal("10.00"), valor_produtos=Decimal("10.00")),
+    )
+    assert "CHAVE_DV_INVALIDO" not in _codigos(nota)

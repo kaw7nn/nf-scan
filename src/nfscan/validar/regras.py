@@ -83,9 +83,14 @@ def _validar_participantes(nota: NotaFiscal, problemas: list[Problema]) -> None:
         )
 
 
+# A chave de 44 dígitos com mod-11 é da NF-e e da NFC-e. A NFS-e nacional usa
+# chave de 50 dígitos com estrutura própria, e a ABRASF não tem chave nenhuma.
+TIPOS_COM_CHAVE_DE_44 = frozenset({"nfe", "nfce", "cupom"})
+
+
 def _validar_chave(nota: NotaFiscal, problemas: list[Problema]) -> None:
     chave = nota.documento.chave_acesso
-    if not chave:
+    if not chave or nota.documento.tipo not in TIPOS_COM_CHAVE_DE_44:
         return
     if not chave_valida(chave):
         problemas.append(
