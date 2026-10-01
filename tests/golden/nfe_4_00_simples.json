@@ -1,0 +1,420 @@
+{
+  "versao_schema": "1.0",
+  "documento": {
+    "tipo": "nfe",
+    "modelo": "55",
+    "chave_acesso": "35260911222333000181550010000012341123456787",
+    "numero": "1234",
+    "serie": "1",
+    "data_emissao": "2026-09-14T10:32:00-03:00",
+    "data_competencia": null,
+    "natureza_operacao": "Venda de mercadoria",
+    "finalidade": "normal",
+    "situacao": "desconhecida",
+    "protocolo_autorizacao": null,
+    "municipio_prestacao": null
+  },
+  "emitente": {
+    "cnpj": "11222333000181",
+    "cpf": null,
+    "razao_social": "Fornecedor de Materiais Ltda",
+    "nome_fantasia": "Fornecedora",
+    "inscricao_estadual": "123456789",
+    "inscricao_municipal": null,
+    "regime_tributario": "real",
+    "endereco": {
+      "logradouro": "Rua A",
+      "numero": "100",
+      "complemento": null,
+      "bairro": "Centro",
+      "municipio": "Sao Paulo",
+      "codigo_municipio_ibge": "3550308",
+      "uf": "SP",
+      "cep": "01001000",
+      "pais": "Brasil",
+      "telefone": null
+    }
+  },
+  "destinatario": {
+    "cnpj": "11444777000161",
+    "cpf": null,
+    "razao_social": "Construtora Exemplo Ltda",
+    "nome_fantasia": null,
+    "inscricao_estadual": "987654321",
+    "inscricao_municipal": null,
+    "regime_tributario": "desconhecido",
+    "endereco": {
+      "logradouro": "Avenida B",
+      "numero": "200",
+      "complemento": null,
+      "bairro": "Jardim",
+      "municipio": "Sao Paulo",
+      "codigo_municipio_ibge": "3550308",
+      "uf": "SP",
+      "cep": "04001000",
+      "pais": "Brasil",
+      "telefone": null
+    }
+  },
+  "itens": [
+    {
+      "ordem": 1,
+      "codigo": "MAT-001",
+      "descricao": "Cimento CP-II 50kg",
+      "ncm": "25232910",
+      "cest": null,
+      "cfop": "5102",
+      "unidade": "SC",
+      "quantidade": "100.0000",
+      "valor_unitario": "38.5000",
+      "valor_total": "3850.00",
+      "desconto": null,
+      "frete": null,
+      "impostos": {
+        "icms": {
+          "cst": "00",
+          "base": "3850.00",
+          "aliquota": "18.00",
+          "valor": "693.00"
+        },
+        "ipi": null,
+        "pis": null,
+        "cofins": null,
+        "iss": null
+      }
+    },
+    {
+      "ordem": 2,
+      "codigo": "MAT-002",
+      "descricao": "Areia media m3",
+      "ncm": "25051000",
+      "cest": null,
+      "cfop": "5102",
+      "unidade": "M3",
+      "quantidade": "10.0000",
+      "valor_unitario": "120.0000",
+      "valor_total": "1200.00",
+      "desconto": null,
+      "frete": null,
+      "impostos": {
+        "icms": {
+          "cst": "00",
+          "base": "1200.00",
+          "aliquota": "18.00",
+          "valor": "216.00"
+        },
+        "ipi": null,
+        "pis": null,
+        "cofins": null,
+        "iss": null
+      }
+    }
+  ],
+  "totais": {
+    "valor_produtos": "5050.00",
+    "valor_servicos": null,
+    "desconto": "0.00",
+    "frete": "150.00",
+    "seguro": "0.00",
+    "outras_despesas": "0.00",
+    "valor_total": "5200.00",
+    "tributos": {
+      "icms_base": "5050.00",
+      "icms_valor": "909.00",
+      "iss_valor": null,
+      "tributos_aproximados": "909.00",
+      "retencoes": null
+    }
+  },
+  "pagamento": {
+    "formas": [
+      {
+        "tipo": "boleto",
+        "valor": "5200.00"
+      }
+    ],
+    "parcelas": []
+  },
+  "transporte": {
+    "modalidade_frete": "emitente",
+    "transportadora": null,
+    "volumes": []
+  },
+  "informacoes_adicionais": "Obra Residencial Alfa - bloco 2",
+  "extracao": {
+    "dialeto": "nfe_4.00",
+    "motor": "nfelib",
+    "arquivo": {
+      "nome": "nfe_4_00_simples.xml",
+      "mime": "application/xml",
+      "bytes": 3495,
+      "sha256": "df1dd7f88a18f083600ab709df9edc43c33130920c015e3b99918f05438dd49f"
+    },
+    "confianca_global": 1.0,
+    "requer_revisao": false,
+    "duracao_ms": 0,
+    "campos": {
+      "documento.modelo": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/ide/mod"
+      },
+      "documento.chave_acesso": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe@Id"
+      },
+      "documento.numero": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/ide/nNF"
+      },
+      "documento.serie": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/ide/serie"
+      },
+      "documento.data_emissao": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/ide/dhEmi"
+      },
+      "documento.natureza_operacao": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/ide/natOp"
+      },
+      "emitente.cnpj": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/emit/CNPJ"
+      },
+      "emitente.razao_social": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/emit/xNome"
+      },
+      "emitente.nome_fantasia": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/emit/xFant"
+      },
+      "emitente.inscricao_estadual": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/emit/IE"
+      },
+      "emitente.endereco.logradouro": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/emit/enderEmit/xLgr"
+      },
+      "emitente.endereco.numero": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/emit/enderEmit/nro"
+      },
+      "emitente.endereco.bairro": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/emit/enderEmit/xBairro"
+      },
+      "emitente.endereco.municipio": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/emit/enderEmit/xMun"
+      },
+      "emitente.endereco.codigo_municipio_ibge": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/emit/enderEmit/cMun"
+      },
+      "emitente.endereco.uf": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/emit/enderEmit/UF"
+      },
+      "emitente.endereco.cep": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/emit/enderEmit/CEP"
+      },
+      "emitente.endereco.pais": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/emit/enderEmit/xPais"
+      },
+      "destinatario.cnpj": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/dest/CNPJ"
+      },
+      "destinatario.razao_social": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/dest/xNome"
+      },
+      "destinatario.inscricao_estadual": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/dest/IE"
+      },
+      "destinatario.endereco.logradouro": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/dest/enderDest/xLgr"
+      },
+      "destinatario.endereco.numero": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/dest/enderDest/nro"
+      },
+      "destinatario.endereco.bairro": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/dest/enderDest/xBairro"
+      },
+      "destinatario.endereco.municipio": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/dest/enderDest/xMun"
+      },
+      "destinatario.endereco.codigo_municipio_ibge": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/dest/enderDest/cMun"
+      },
+      "destinatario.endereco.uf": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/dest/enderDest/UF"
+      },
+      "destinatario.endereco.cep": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/dest/enderDest/CEP"
+      },
+      "destinatario.endereco.pais": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/dest/enderDest/xPais"
+      },
+      "itens[1].codigo": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[1]/prod/cProd"
+      },
+      "itens[1].descricao": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[1]/prod/xProd"
+      },
+      "itens[1].ncm": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[1]/prod/NCM"
+      },
+      "itens[1].cfop": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[1]/prod/CFOP"
+      },
+      "itens[1].unidade": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[1]/prod/uCom"
+      },
+      "itens[1].quantidade": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[1]/prod/qCom"
+      },
+      "itens[1].valor_unitario": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[1]/prod/vUnCom"
+      },
+      "itens[1].valor_total": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[1]/prod/vProd"
+      },
+      "itens[1].impostos.icms.cst": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[1]/imposto/ICMS/CST|CSOSN"
+      },
+      "itens[1].impostos.icms.base": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[1]/imposto/ICMS/vBC"
+      },
+      "itens[1].impostos.icms.aliquota": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[1]/imposto/ICMS/pICMS"
+      },
+      "itens[1].impostos.icms.valor": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[1]/imposto/ICMS/vICMS"
+      },
+      "itens[2].codigo": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[2]/prod/cProd"
+      },
+      "itens[2].descricao": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[2]/prod/xProd"
+      },
+      "itens[2].ncm": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[2]/prod/NCM"
+      },
+      "itens[2].cfop": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[2]/prod/CFOP"
+      },
+      "itens[2].unidade": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[2]/prod/uCom"
+      },
+      "itens[2].quantidade": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[2]/prod/qCom"
+      },
+      "itens[2].valor_unitario": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[2]/prod/vUnCom"
+      },
+      "itens[2].valor_total": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[2]/prod/vProd"
+      },
+      "itens[2].impostos.icms.cst": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[2]/imposto/ICMS/CST|CSOSN"
+      },
+      "itens[2].impostos.icms.base": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[2]/imposto/ICMS/vBC"
+      },
+      "itens[2].impostos.icms.aliquota": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[2]/imposto/ICMS/pICMS"
+      },
+      "itens[2].impostos.icms.valor": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/det[2]/imposto/ICMS/vICMS"
+      },
+      "totais.valor_produtos": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/total/ICMSTot/vProd"
+      },
+      "totais.desconto": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/total/ICMSTot/vDesc"
+      },
+      "totais.frete": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/total/ICMSTot/vFrete"
+      },
+      "totais.seguro": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/total/ICMSTot/vSeg"
+      },
+      "totais.outras_despesas": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/total/ICMSTot/vOutro"
+      },
+      "totais.valor_total": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/total/ICMSTot/vNF"
+      },
+      "totais.tributos.icms_base": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/total/ICMSTot/vBC"
+      },
+      "totais.tributos.icms_valor": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/total/ICMSTot/vICMS"
+      },
+      "totais.tributos.tributos_aproximados": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/total/ICMSTot/vTotTrib"
+      },
+      "pagamento.formas[1].valor": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/pag/detPag[1]/vPag"
+      },
+      "transporte.modalidade_frete": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/transp/modFrete"
+      },
+      "informacoes_adicionais": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/infAdic/infCpl"
+      }
+    },
+    "problemas": []
+  }
+}

@@ -1,0 +1,1 @@
+"""Extratores por dialeto fiscal."""
