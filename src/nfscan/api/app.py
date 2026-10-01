@@ -1,0 +1,106 @@
+"""API HTTP do NF Scan.
+
+Casca fina: nenhuma regra de negócio aqui. A decisão de contrato que importa é
+o código de status — uma nota mal extraída responde ``200``, porque a qualidade
+da leitura é dado da resposta, não erro de protocolo. Só erro de protocolo de
+verdade sai como 4xx.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+from fastapi import Depends, FastAPI, HTTPException, UploadFile, status
+from fastapi.responses import JSONResponse
+
+from nfscan import __version__
+from nfscan.api.diagnostico import versao_tesseract
+from nfscan.api.seguranca import conferir_chave
+from nfscan.extratores import dialetos_suportados
+from nfscan.modelo import NotaFiscal
+from nfscan.pipeline import LIMITE_BYTES, ArquivoGrande, parse, parse_entrada
+
+MAXIMO_LOTE = 50
+
+
+def criar_app() -> FastAPI:
+    """Monta a aplicação. Função em vez de módulo para os testes isolarem estado."""
+    app = FastAPI(
+        title="NF Scan",
+        version=__version__,
+        description=(
+            "Lê notas fiscais brasileiras em qualquer formato e devolve um JSON "
+            "canônico com confiança e proveniência por campo."
+        ),
+    )
+
+    @app.get("/healthz", tags=["servico"])
+    def healthz() -> dict[str, str]:
+        """Verificação de vida, aberta e sem chave de API."""
+        return {"status": "ok", "versao": __version__, "tesseract": versao_tesseract()}
+
+    @app.post(
+        "/v1/notas",
+        response_model=NotaFiscal,
+        tags=["notas"],
+        dependencies=[Depends(conferir_chave)],
+    )
+    async def ler_nota(arquivo: UploadFile) -> NotaFiscal:
+        """Lê uma nota e devolve o JSON canônico.
+
+        Responde ``200`` mesmo quando a extração foi ruim: a qualidade se
+        comunica por ``confianca_global``, ``problemas`` e ``requer_revisao``.
+        """
+        conteudo = await arquivo.read()
+        try:
+            return parse(conteudo, arquivo.filename or "sem-nome", arquivo.content_type)
+        except ArquivoGrande as erro:
+            raise HTTPException(
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=str(erro)
+            ) from erro
+
+    @app.post(
+        "/v1/notas/lote",
+        response_model=list[NotaFiscal],
+        tags=["notas"],
+        dependencies=[Depends(conferir_chave)],
+    )
+    async def ler_lote(arquivos: list[UploadFile]) -> list[NotaFiscal]:
+        """Lê até ``MAXIMO_LOTE`` arquivos, ou um ZIP, preservando a ordem."""
+        if len(arquivos) > MAXIMO_LOTE:
+            raise HTTPException(
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                detail=f"o lote aceita no máximo {MAXIMO_LOTE} arquivos",
+            )
+        notas: list[NotaFiscal] = []
+        for item in arquivos:
+            conteudo = await item.read()
+            try:
+                notas.extend(
+                    parse_entrada(conteudo, item.filename or "sem-nome", item.content_type)
+                )
+            except ArquivoGrande as erro:
+                raise HTTPException(
+                    status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                    detail=f"{item.filename}: {erro}",
+                ) from erro
+        return notas
+
+    @app.get("/v1/schema", tags=["servico"], dependencies=[Depends(conferir_chave)])
+    def schema() -> JSONResponse:
+        """JSON Schema do modelo canônico, para o consumidor gerar seus tipos."""
+        return JSONResponse(NotaFiscal.model_json_schema())
+
+    @app.get("/v1/dialetos", tags=["servico"], dependencies=[Depends(conferir_chave)])
+    def dialetos() -> dict[str, Any]:
+        """Dialetos com extrator registrado e os limites aceitos."""
+        return {
+            "dialetos": sorted(dialeto.value for dialeto in dialetos_suportados()),
+            "limite_bytes": LIMITE_BYTES,
+            "maximo_lote": MAXIMO_LOTE,
+        }
+
+    return app
+
+
+app = criar_app()

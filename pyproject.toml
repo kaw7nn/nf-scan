@@ -14,7 +14,7 @@ pdf = ["pdfplumber>=0.11"]
 ocr = ["pytesseract>=0.3.13", "pillow>=11.0"]
 
 [dependency-groups]
-dev = ["pytest>=8.3", "ruff>=0.8", "mypy>=1.13"]
+dev = ["pytest>=8.3", "ruff>=0.8", "mypy>=1.13", "httpx2>=2.0"]
 
 [build-system]
 requires = ["hatchling"]

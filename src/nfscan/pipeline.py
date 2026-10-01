@@ -80,3 +80,44 @@ def parse(conteudo: bytes, nome: str, mime: str | None = None) -> NotaFiscal:
     nota.extracao.requer_revisao = requer_revisao(confianca, problemas)
     nota.extracao.duracao_ms = int((time.perf_counter() - inicio) * 1000)
     return nota
+
+
+MAXIMO_ENTRADAS_ZIP = 50
+
+
+def parse_zip(conteudo: bytes, nome: str) -> list[NotaFiscal]:
+    """Lê cada entrada de um ZIP, preservando a ordem do arquivo.
+
+    Entrada ilegível vira nota com ``ARQUIVO_ILEGIVEL``, não exceção, para que
+    um arquivo solto no pacote não invalide o lote inteiro. ZIP corrompido
+    devolve uma única nota ilegível.
+    """
+    import io
+    import zipfile
+
+    try:
+        pacote = zipfile.ZipFile(io.BytesIO(conteudo))
+        nomes = [item for item in pacote.namelist() if not item.endswith("/")]
+    except zipfile.BadZipFile:
+        return [ExtratorGenerico().extrair(conteudo, _origem(conteudo, nome, "application/zip"))]
+
+    if len(nomes) > MAXIMO_ENTRADAS_ZIP:
+        raise ArquivoGrande(
+            f"o ZIP traz {len(nomes)} entradas, acima do limite de {MAXIMO_ENTRADAS_ZIP}"
+        )
+
+    notas: list[NotaFiscal] = []
+    for interno in nomes:
+        try:
+            bruto = pacote.read(interno)
+        except Exception:
+            bruto = b""
+        notas.append(parse(bruto, interno))
+    return notas
+
+
+def parse_entrada(conteudo: bytes, nome: str, mime: str | None = None) -> list[NotaFiscal]:
+    """Lê um arquivo, expandindo-o se for ZIP. Sempre devolve lista."""
+    if detectar_container(conteudo) is Container.ZIP:
+        return parse_zip(conteudo, nome)
+    return [parse(conteudo, nome, mime)]
