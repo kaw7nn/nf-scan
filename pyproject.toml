@@ -5,6 +5,7 @@ description = "Leitor universal de notas fiscais brasileiras"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "pydantic>=2.9",
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
@@ -14,7 +15,7 @@ pdf = ["pdfplumber>=0.11"]
 ocr = ["pytesseract>=0.3.13", "pillow>=11.0"]
 
 [dependency-groups]
-dev = ["pytest>=8.3", "ruff>=0.8", "mypy>=1.13", "httpx2>=2.0", "lxml-stubs>=0.5"]
+dev = ["pytest>=8.3", "ruff>=0.8", "mypy>=1.13", "httpx2>=2.0", "lxml-stubs>=0.5", "types-PyYAML>=6.0"]
 
 [build-system]
 requires = ["hatchling"]
@@ -42,3 +43,6 @@ files = ["src"]
 [[tool.mypy.overrides]]
 module = ["nfelib.*", "pdfplumber.*", "pytesseract.*"]
 ignore_missing_imports = true
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/nfscan/extratores/ancoras/perfis" = "nfscan/extratores/ancoras/perfis"

@@ -1,0 +1,38 @@
+                              DANFE
+                  DOCUMENTO AUXILIAR DA NOTA FISCAL
+                       ELETRONICA
+
+ 0 - ENTRADA        No 12345
+ 1 - SAIDA          SERIE 001
+
+ CHAVE DE ACESSO
+ 3526 0911 2223 3300 0181 5500 1000 0123 4518 7654 3218
+
+ Consulta de autenticidade no portal nacional da NF-e
+ www.nfe.fazenda.gov.br/portal
+
+ NATUREZA DA OPERACAO
+ Venda de mercadoria adquirida de terceiros
+
+ EMITENTE
+ FORNECEDOR DE MATERIAIS LTDA
+ RUA A, 100 - CENTRO - SAO PAULO/SP - CEP 01001-000
+ CNPJ 11.222.333/0001-81      INSCRICAO ESTADUAL 123.456.789
+
+ DESTINATARIO / REMETENTE
+ NOME/RAZAO SOCIAL                       CNPJ/CPF         DATA DA EMISSAO
+ CONSTRUTORA EXEMPLO LTDA                11.444.777/0001-61   14/09/2026
+
+ CALCULO DO IMPOSTO
+ BASE DE CALCULO DO ICMS      VALOR DO ICMS      VALOR TOTAL DOS PRODUTOS
+         5.050,00                  909,00                 5.050,00
+ VALOR DO FRETE   VALOR DO SEGURO   DESCONTO   VALOR TOTAL DA NOTA
+       150,00            0,00         0,00           5.200,00
+
+ DADOS DOS PRODUTOS / SERVICOS
+ COD    DESCRICAO             NCM      CFOP  UN   QTD    V.UNIT    V.TOTAL
+ MAT-001 CIMENTO CP-II 50KG   25232910 5102  SC  100,00    38,50   3.850,00
+ MAT-002 AREIA MEDIA M3       25051000 5102  M3   10,00   120,00   1.200,00
+
+ DADOS ADICIONAIS
+ Obra Residencial Alfa - bloco 2

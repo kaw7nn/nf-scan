@@ -1,0 +1,59 @@
+# Perfil de último recurso para DANFE com layout padrão.
+#
+# Os valores do bloco "CALCULO DO IMPOSTO" usam âncora de coluna: ali os
+# rótulos ficam numa linha e os valores alinhados abaixo, e "primeiro número
+# depois do rótulo" leria a coluna vizinha.
+#
+# Um emissor com layout peculiar é um arquivo novo aqui, com marcadores
+# próprios, sem tocar no código.
+nome: generico
+marcadores: []
+campos:
+  emitente.cnpj:
+    regex:
+      - "CNPJ[:\\s]*(\\d{2}[.\\s]?\\d{3}[.\\s]?\\d{3}[/\\s]?\\d{4}[-\\s]?\\d{2})"
+  emitente.inscricao_estadual:
+    regex:
+      - "INSCRI[CÇ][AÃ]O\\s+ESTADUAL[:\\s]*([\\d.\\-/]{6,20})"
+  documento.natureza_operacao:
+    regex:
+      - "NATUREZA\\s+DA\\s+OPERA[CÇ][AÃ]O\\s*\\n\\s*(.+)"
+  documento.numero:
+    regex:
+      - "N[o°º]\\s*(\\d{1,9})\\b"
+  documento.serie:
+    regex:
+      - "S[EÉ]RIE[:\\s]*(\\d{1,3})"
+  documento.data_emissao:
+    regex:
+      - "DATA\\s+DA\\s+EMISS[AÃ]O[\\s\\S]{0,160}?(\\d{2}/\\d{2}/\\d{4})"
+      - "(\\d{2}/\\d{2}/\\d{4})"
+  totais.valor_total:
+    coluna:
+      - "VALOR TOTAL DA NOTA"
+    regex:
+      - "VALOR\\s+TOTAL\\s+DA\\s+NOTA[:\\s]*([\\d.]*\\d,\\d{2})"
+  totais.valor_produtos:
+    coluna:
+      - "VALOR TOTAL DOS PRODUTOS"
+    regex:
+      - "VALOR\\s+TOTAL\\s+DOS\\s+PRODUTOS[:\\s]*([\\d.]*\\d,\\d{2})"
+  totais.frete:
+    coluna:
+      - "VALOR DO FRETE"
+  totais.seguro:
+    coluna:
+      - "VALOR DO SEGURO"
+  totais.desconto:
+    coluna:
+      - "DESCONTO"
+  tributos.icms_valor:
+    coluna:
+      - "VALOR DO ICMS"
+  tributos.icms_base:
+    coluna:
+      - "BASE DE CALCULO DO ICMS"
+      - "BASE DE CÁLCULO DO ICMS"
+  informacoes_adicionais:
+    regex:
+      - "DADOS\\s+ADICIONAIS\\s*\\n\\s*(.+)"
