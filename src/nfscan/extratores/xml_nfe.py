@@ -19,6 +19,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any
 
+from nfscan.detect.dialeto import Dialeto
 from nfscan.dominio.chave import ChaveInvalida, parse_chave
 from nfscan.dominio.numeros import para_data_hora, para_decimal
 from nfscan.dominio.textos import limpar_texto
@@ -132,7 +133,7 @@ class ExtratorNfe:
     """Lê NF-e e NFC-e 4.00 do XML, com confiança 1.0."""
 
     motor = "nfelib"
-    dialetos: tuple[str, ...] = ("nfe_4.00",)
+    dialetos: tuple[Dialeto, ...] = (Dialeto.NFE_4_00,)
 
     def extrair(self, conteudo: bytes, arquivo: ArquivoOrigem) -> NotaFiscal:
         inicio = time.perf_counter()
@@ -169,7 +170,7 @@ class ExtratorNfe:
             transporte=transporte,
             informacoes_adicionais=adicionais,
             extracao=Extracao(
-                dialeto=self.dialetos[0],
+                dialeto=self.dialetos[0].value,
                 motor=self.motor,
                 arquivo=arquivo,
                 confianca_global=confianca,
