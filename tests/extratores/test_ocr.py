@@ -69,22 +69,30 @@ def test_colunas_do_bloco_tabular_saem_corretas(ler_fixture) -> None:
     assert nota.totais.tributos.icms_base == Decimal("5050.00")
 
 
-def test_erro_de_digito_do_ocr_e_pego_pela_validacao_cruzada(ler_fixture) -> None:
-    """O OCR leu "150,00" como "150, 60" nesta fixture.
+def test_valor_mal_lido_e_pego_pela_validacao_cruzada(ler_fixture) -> None:
+    """O OCR pode trocar um dígito, e a validação cruzada é a rede.
 
-    Nenhuma política de regex corrige um dígito lido errado. O que protege o
-    consumidor é a validação cruzada: 5050,00 + 150,60 não fecha com 5200,00, e
-    a nota sai com TOTAL_DIVERGENTE e requer_revisao.
+    O resultado depende do pacote de idioma instalado: com ``por`` esta fixture
+    lê o frete como 150,00; com ``eng`` o Tesseract lê 150,60. Nenhuma política
+    de regex corrige dígito lido errado — o que protege o consumidor é a soma
+    não fechar: 5050,00 + 150,60 contra 5200,00 sai como TOTAL_DIVERGENTE.
+
+    O teste afirma a invariante, não o número de um ambiente: ou o frete está
+    correto, ou a divergência foi sinalizada. Nunca valor errado em silêncio.
     """
     from decimal import Decimal
 
     from nfscan.pipeline import parse
 
     conteudo, arquivo = ler_fixture(IMAGEM, "image/png")
-    assert ExtratorOcr().extrair(conteudo, arquivo).totais.frete == Decimal("150.60")
-
     nota = parse(conteudo, arquivo.nome)
-    assert "TOTAL_DIVERGENTE" in {p.codigo for p in nota.extracao.problemas}
+    codigos = {p.codigo for p in nota.extracao.problemas}
+
+    if nota.totais.frete == Decimal("150.00"):
+        assert "TOTAL_DIVERGENTE" not in codigos
+    else:
+        assert "TOTAL_DIVERGENTE" in codigos
+    # Em qualquer um dos casos, OCR sempre pede conferência humana.
     assert nota.extracao.requer_revisao is True
 
 

@@ -223,6 +223,11 @@ O perfil é escolhido pelo maior número de marcadores presentes no texto.
   imagem são sintéticas e limpas: provam que o caminho funciona, não medem
   acerto em cupom amassado ou foto torta. Ponha notas de verdade em
   `tests/fixtures/` para medir.
+- **O pacote de idioma muda o resultado de forma mensurável.** Na mesma imagem
+  de teste, o Tesseract com `por` lê o valor do frete como `150,00`; com `eng`
+  lê `150,60`. Nos dois casos a nota sai com `requer_revisao`, e no segundo a
+  validação cruzada acusa `TOTAL_DIVERGENTE` — mas instale
+  `tesseract-data-por`, ou use a imagem Docker, que já traz.
 - **Não emite nota, não persiste nada.** O serviço é *stateless*; quem guarda é
   o consumidor.
 - O log registra métrica (dialeto, confiança, duração, sha256 e códigos de
