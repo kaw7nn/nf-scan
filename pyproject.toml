@@ -1,0 +1,40 @@
+[project]
+name = "nfscan"
+version = "0.1.0"
+description = "Leitor universal de notas fiscais brasileiras"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "pydantic>=2.9",
+]
+
+[project.optional-dependencies]
+api = ["fastapi>=0.115", "uvicorn[standard]>=0.32", "python-multipart>=0.0.12"]
+fiscal = ["nfelib>=2.2", "lxml>=5.3"]
+pdf = ["pdfplumber>=0.11"]
+ocr = ["pytesseract>=0.3.13", "pillow>=11.0"]
+
+[dependency-groups]
+dev = ["pytest>=8.3", "ruff>=0.8", "mypy>=1.13"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nfscan"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src"]
