@@ -17,6 +17,7 @@ from nfscan import __version__
 from nfscan.api.diagnostico import idiomas_tesseract, versao_tesseract
 from nfscan.api.seguranca import conferir_chave
 from nfscan.extratores import dialetos_suportados
+from nfscan.log import configurar, registrar_leitura
 from nfscan.modelo import NotaFiscal
 from nfscan.pipeline import LIMITE_BYTES, ArquivoGrande, parse, parse_entrada
 
@@ -25,6 +26,7 @@ MAXIMO_LOTE = 50
 
 def criar_app() -> FastAPI:
     """Monta a aplicação. Função em vez de módulo para os testes isolarem estado."""
+    configurar()
     app = FastAPI(
         title="NF Scan",
         version=__version__,
@@ -62,11 +64,13 @@ def criar_app() -> FastAPI:
         """
         conteudo = await arquivo.read()
         try:
-            return parse(conteudo, arquivo.filename or "sem-nome", arquivo.content_type)
+            nota = parse(conteudo, arquivo.filename or "sem-nome", arquivo.content_type)
         except ArquivoGrande as erro:
             raise HTTPException(
                 status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=str(erro)
             ) from erro
+        registrar_leitura(nota)
+        return nota
 
     @app.post(
         "/v1/notas/lote",
@@ -85,14 +89,15 @@ def criar_app() -> FastAPI:
         for item in arquivos:
             conteudo = await item.read()
             try:
-                notas.extend(
-                    parse_entrada(conteudo, item.filename or "sem-nome", item.content_type)
-                )
+                lidas = parse_entrada(conteudo, item.filename or "sem-nome", item.content_type)
             except ArquivoGrande as erro:
                 raise HTTPException(
                     status_code=status.HTTP_413_CONTENT_TOO_LARGE,
                     detail=f"{item.filename}: {erro}",
                 ) from erro
+            for nota in lidas:
+                registrar_leitura(nota)
+            notas.extend(lidas)
         return notas
 
     @app.get("/v1/schema", tags=["servico"], dependencies=[Depends(conferir_chave)])
