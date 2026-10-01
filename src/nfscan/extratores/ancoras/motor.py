@@ -34,11 +34,17 @@ import yaml
 DIRETORIO_PERFIS = Path(__file__).parent / "perfis"
 NOME_GENERICO = "generico"
 
-# Número no formato brasileiro, com ou sem ponto de milhar.
-_NUMERO_BR = re.compile(r"-?\d{1,3}(?:\.\d{3})+,\d{2}|-?\d+,\d{2}")
+# Número no formato brasileiro, com ou sem ponto de milhar. O espaço opcional
+# depois da vírgula tolera um artefato comum do OCR, que lê "5.050,00" como
+# "5.050, 00". A estrutura continua inequívoca: vírgula e exatamente duas casas.
+_NUMERO_BR = re.compile(r"-?\d{1,3}(?:\.\d{3})+,\s?\d{2}|-?\d+,\s?\d{2}")
 
 LINHAS_ABAIXO = 3
 TOLERANCIA_COLUNA = 5
+
+# Palavra com três letras ou mais, para reconhecer linha de rótulos.
+_PALAVRA = re.compile(r"[^\W\d_]{3,}")
+_MINIMO_PALAVRAS_CABECALHO = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,12 +115,27 @@ def escolher_perfil(texto: str, perfis: list[Perfil]) -> Perfil:
     return next(perfil for perfil in perfis if perfil.nome == NOME_GENERICO)
 
 
+def _e_cabecalho(linha: str) -> bool:
+    """Reconhece uma linha de rótulos, que marca o início de outra tabela.
+
+    Sem número algum e com duas ou mais palavras: é cabeçalho, não valor.
+    """
+    if _NUMERO_BR.search(linha):
+        return False
+    return len(_PALAVRA.findall(linha)) >= _MINIMO_PALAVRAS_CABECALHO
+
+
 def valor_na_coluna(texto: str, rotulo: str) -> str | None:
-    """Lê o número alinhado sob o rótulo, nas linhas seguintes.
+    """Lê o número alinhado sob o rótulo, na linha de valores dessa tabela.
 
     Devolve o primeiro número cuja faixa horizontal se sobrepõe à do rótulo,
     com folga de :data:`TOLERANCIA_COLUNA` caracteres para cada lado — a
     centralização do valor na coluna raramente é exata.
+
+    A busca **para na primeira linha abaixo que contenha algum número**, mesmo
+    que nenhum deles caia na coluna do rótulo. Continuar descendo faria o rótulo
+    de uma tabela puxar valor da tabela seguinte, e o resultado seria um valor
+    plausível e errado — pior que campo ausente em documento fiscal.
     """
     linhas = texto.splitlines()
     alvo = rotulo.upper()
@@ -125,9 +146,19 @@ def valor_na_coluna(texto: str, rotulo: str) -> str | None:
         inicio = posicao - TOLERANCIA_COLUNA
         fim = posicao + len(alvo) + TOLERANCIA_COLUNA
         for seguinte in linhas[indice + 1 : indice + 1 + LINHAS_ABAIXO]:
-            for achado in _NUMERO_BR.finditer(seguinte):
+            achados = list(_NUMERO_BR.finditer(seguinte))
+            if not achados:
+                if _e_cabecalho(seguinte):
+                    # Começou outra tabela antes de aparecer valor: o campo
+                    # desta está ausente.
+                    return None
+                continue
+            for achado in achados:
                 if achado.start() < fim and achado.end() > inicio:
                     return achado.group()
+            # A linha de valores desta tabela existe e não tem número nesta
+            # coluna: o campo está ausente. Não desce mais.
+            return None
     return None
 
 
@@ -151,5 +182,6 @@ def aplicar(perfil: Perfil, texto: str) -> dict[str, str]:
                     achado = casamento.group(1).strip()
                     break
         if achado:
-            encontrados[campo] = achado.strip()
+            # Remove o espaço que o OCR insere depois da vírgula decimal.
+            encontrados[campo] = re.sub(r",\s+(\d{2})\b", r",\1", achado.strip())
     return encontrados

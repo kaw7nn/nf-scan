@@ -15,6 +15,7 @@ import time
 from nfscan.detect.dialeto import detectar_dialeto
 from nfscan.extratores import obter
 from nfscan.extratores.generico import ExtratorGenerico
+from nfscan.extratores.registro import Extrator
 from nfscan.modelo import ArquivoOrigem, NotaFiscal, Problema
 from nfscan.modelo.coletor import requer_revisao
 from nfscan.sniff.container import Container, detectar_container
@@ -50,7 +51,15 @@ def parse(conteudo: bytes, nome: str, mime: str | None = None) -> NotaFiscal:
     container = detectar_container(conteudo)
     dialeto, confianca_deteccao = detectar_dialeto(conteudo, container)
 
-    extrator = obter(dialeto) or ExtratorGenerico()
+    # Imagem e PDF sem camada de texto vão para o OCR pelo container, não pelo
+    # dialeto: a detecção palpita DANFE_PDF para os dois, e o extrator de texto
+    # devolveria nota vazia.
+    if container in (Container.IMAGEM, Container.PDF_IMAGEM):
+        from nfscan.extratores.ocr.extrator import ExtratorOcr
+
+        extrator: Extrator = ExtratorOcr()
+    else:
+        extrator = obter(dialeto) or ExtratorGenerico()
     extras: list[Problema] = []
     try:
         nota = extrator.extrair(conteudo, arquivo)

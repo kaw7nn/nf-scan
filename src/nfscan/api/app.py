@@ -14,7 +14,7 @@ from fastapi import Depends, FastAPI, HTTPException, UploadFile, status
 from fastapi.responses import JSONResponse
 
 from nfscan import __version__
-from nfscan.api.diagnostico import versao_tesseract
+from nfscan.api.diagnostico import idiomas_tesseract, versao_tesseract
 from nfscan.api.seguranca import conferir_chave
 from nfscan.extratores import dialetos_suportados
 from nfscan.modelo import NotaFiscal
@@ -35,9 +35,18 @@ def criar_app() -> FastAPI:
     )
 
     @app.get("/healthz", tags=["servico"])
-    def healthz() -> dict[str, str]:
-        """Verificação de vida, aberta e sem chave de API."""
-        return {"status": "ok", "versao": __version__, "tesseract": versao_tesseract()}
+    def healthz() -> dict[str, Any]:
+        """Verificação de vida, aberta e sem chave de API.
+
+        Reporta os idiomas de OCR instalados: sem o pacote 'por' a leitura de
+        foto perde precisão, e o operador precisa saber disso sem adivinhar.
+        """
+        return {
+            "status": "ok",
+            "versao": __version__,
+            "tesseract": versao_tesseract(),
+            "idiomas_ocr": list(idiomas_tesseract()),
+        }
 
     @app.post(
         "/v1/notas",
