@@ -24,10 +24,13 @@ campos:
   documento.serie:
     regex:
       - "S[EÉ]RIE[:\\s]*(\\d{1,3})"
+  # Só com o rótulo de emissão. O fallback "primeira data do documento" pegava
+  # o vencimento da duplicata ou o carimbo de impressão e reportava como data
+  # de emissão, sem aviso. Melhor campo ausente que data errada.
   documento.data_emissao:
     regex:
-      - "DATA\\s+DA\\s+EMISS[AÃ]O[\\s\\S]{0,160}?(\\d{2}/\\d{2}/\\d{4})"
-      - "(\\d{2}/\\d{2}/\\d{4})"
+      - "DATA\\s+D[AE]\\s+EMISS[AÃ]O[\\s\\S]{0,160}?(\\d{2}/\\d{2}/\\d{4})"
+      - "EMISS[AÃ]O[:\\s]*(\\d{2}/\\d{2}/\\d{4})"
   totais.valor_total:
     coluna:
       - "VALOR TOTAL DA NOTA"

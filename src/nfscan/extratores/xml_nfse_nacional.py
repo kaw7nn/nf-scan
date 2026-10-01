@@ -18,6 +18,7 @@ from enum import Enum
 from typing import Any
 
 from nfscan.detect.dialeto import Dialeto
+from nfscan.dominio.codificacao import texto_de_xml
 from nfscan.dominio.numeros import para_data, para_data_hora, para_decimal
 from nfscan.dominio.textos import limpar_texto
 from nfscan.extratores.xml_nfe import SITUACAO_POR_CSTAT
@@ -68,7 +69,8 @@ class ExtratorNfseNacional:
 
         inicio = time.perf_counter()
         coletor = Coletor(CONFIANCA["xml_oficial"])
-        inf = Nfse.from_xml(conteudo.decode("utf-8", errors="replace")).infNFSe
+        texto, _ = texto_de_xml(conteudo)
+        inf = Nfse.from_xml(texto).infNFSe
         dps = inf.DPS.infDPS if inf.DPS is not None else None
 
         documento = self._documento(inf, dps, coletor)

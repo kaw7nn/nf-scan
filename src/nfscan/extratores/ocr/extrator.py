@@ -27,6 +27,10 @@ IDIOMA_RESERVA = "eng"
 # a âncora por coluna não funciona.
 CONFIGURACAO = "--psm 6 -c preserve_interword_spaces=1"
 
+# Teto por página: sem isso o Tesseract pode travar o worker indefinidamente
+# numa imagem patológica.
+TIMEOUT_POR_PAGINA = 60
+
 
 def idioma_disponivel() -> str:
     """Idioma a usar: ``por`` se instalado, senão ``eng``, senão nenhum."""
@@ -50,7 +54,11 @@ def texto_por_ocr(conteudo: bytes, container: Container) -> str:
     partes = []
     for imagem in imagens_de(conteudo, container):
         try:
-            partes.append(pytesseract.image_to_string(imagem, lang=idioma, config=CONFIGURACAO))
+            partes.append(
+                pytesseract.image_to_string(
+                    imagem, lang=idioma, config=CONFIGURACAO, timeout=TIMEOUT_POR_PAGINA
+                )
+            )
         except Exception:
             continue
     return "\n".join(partes)

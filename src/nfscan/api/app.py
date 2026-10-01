@@ -24,6 +24,23 @@ from nfscan.pipeline import LIMITE_BYTES, ArquivoGrande, parse, parse_entrada
 MAXIMO_LOTE = 50
 
 
+def _recusar_se_grande(arquivo: UploadFile) -> None:
+    """Recusa pelo tamanho declarado, antes de carregar os bytes na memória.
+
+    ``parse`` também confere, mas só depois de o upload inteiro estar em
+    memória; checar aqui evita gastar memória com o que já se sabe que será
+    recusado.
+    """
+    if arquivo.size is not None and arquivo.size > LIMITE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=(
+                f"{arquivo.filename}: {arquivo.size} bytes excedem o limite de "
+                f"{LIMITE_BYTES}"
+            ),
+        )
+
+
 def criar_app() -> FastAPI:
     """Monta a aplicação. Função em vez de módulo para os testes isolarem estado."""
     configurar()
@@ -62,6 +79,7 @@ def criar_app() -> FastAPI:
         Responde ``200`` mesmo quando a extração foi ruim: a qualidade se
         comunica por ``confianca_global``, ``problemas`` e ``requer_revisao``.
         """
+        _recusar_se_grande(arquivo)
         conteudo = await arquivo.read()
         try:
             nota = parse(conteudo, arquivo.filename or "sem-nome", arquivo.content_type)
@@ -87,6 +105,7 @@ def criar_app() -> FastAPI:
             )
         notas: list[NotaFiscal] = []
         for item in arquivos:
+            _recusar_se_grande(item)
             conteudo = await item.read()
             try:
                 lidas = parse_entrada(conteudo, item.filename or "sem-nome", item.content_type)

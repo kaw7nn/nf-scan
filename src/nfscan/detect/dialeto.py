@@ -41,7 +41,9 @@ def _amostra_texto(conteudo: bytes) -> str:
     return conteudo.removeprefix(_BOM_UTF8)[:_AMOSTRA].decode("utf-8", errors="replace")
 
 
-def detectar_dialeto(conteudo: bytes, container: Container) -> tuple[Dialeto, float]:
+def detectar_dialeto(
+    conteudo: bytes, container: Container, texto_pdf: str | None = None
+) -> tuple[Dialeto, float]:
     """Devolve ``(dialeto, confianca_da_deteccao)``.
 
     NF-e reconhecida pelo namespace oficial vale 1.0: o namespace não é
@@ -59,7 +61,8 @@ def detectar_dialeto(conteudo: bytes, container: Container) -> tuple[Dialeto, fl
         return Dialeto.DESCONHECIDO, 0.2
 
     if container is Container.PDF_TEXTO:
-        texto = texto_de_pdf(conteudo).upper()
+        # Reaproveita o texto que o sniff já extraiu, quando foi passado.
+        texto = (texto_pdf if texto_pdf is not None else texto_de_pdf(conteudo)).upper()
         if any(marca in texto for marca in _MARCAS_CUPOM):
             return Dialeto.NFCE_CUPOM, 1.0
         return Dialeto.DANFE_PDF, 1.0

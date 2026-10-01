@@ -15,4 +15,6 @@ from pydantic import PlainSerializer
 Dinheiro = Annotated[Decimal, PlainSerializer(str, return_type=str, when_used="json")]
 Quantidade = Annotated[Decimal, PlainSerializer(str, return_type=str, when_used="json")]
 
-VERSAO_SCHEMA = "1.0"
+# 1.1 acrescentou totais.ipi e totais.icms_st. Campo novo opcional é
+# compatível com quem consome 1.0, então sobe a versão menor.
+VERSAO_SCHEMA = "1.1"

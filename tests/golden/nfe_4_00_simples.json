@@ -1,5 +1,5 @@
 {
-  "versao_schema": "1.0",
+  "versao_schema": "1.1",
   "documento": {
     "tipo": "nfe",
     "modelo": "55",
@@ -117,6 +117,8 @@
     "frete": "150.00",
     "seguro": "0.00",
     "outras_despesas": "0.00",
+    "ipi": "0.00",
+    "icms_st": "0.00",
     "valor_total": "5200.00",
     "tributos": {
       "icms_base": "5050.00",
@@ -385,6 +387,14 @@
       "totais.outras_despesas": {
         "confianca": 1.0,
         "origem": "xml:/infNFe/total/ICMSTot/vOutro"
+      },
+      "totais.ipi": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/total/ICMSTot/vIPI"
+      },
+      "totais.icms_st": {
+        "confianca": 1.0,
+        "origem": "xml:/infNFe/total/ICMSTot/vST"
       },
       "totais.valor_total": {
         "confianca": 1.0,

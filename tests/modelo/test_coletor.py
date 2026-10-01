@@ -32,11 +32,21 @@ def test_valor_none_nao_e_registrado() -> None:
     assert "emitente.cnpj" not in coletor.campos
 
 
-def test_confianca_global_e_a_media_dos_campos() -> None:
+def test_confianca_global_e_o_elo_mais_fraco() -> None:
+    # A média permitia que uma extração mais completa reportasse confiança
+    # maior que uma extração parcial, invertendo o sinal.
     coletor = Coletor(CONFIANCA["pdf_ancora"])
     coletor.registrar("a", "x", "o", confianca=1.0)
     coletor.registrar("b", "y", "o", confianca=0.5)
-    assert coletor.confianca_global() == 0.75
+    assert coletor.confianca_global() == 0.5
+
+
+def test_confianca_global_nunca_sobe_com_campo_novo() -> None:
+    coletor = Coletor(CONFIANCA["pdf_ancora"])
+    coletor.registrar("a", "x", "o", confianca=1.0)
+    antes = coletor.confianca_global()
+    coletor.registrar("b", "y", "o", confianca=0.5)
+    assert coletor.confianca_global() <= antes
 
 
 def test_confianca_global_sem_campos_e_zero() -> None:

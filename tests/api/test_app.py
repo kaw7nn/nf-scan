@@ -53,7 +53,7 @@ def test_xml_de_nfe_responde_200_com_nota(cliente, ler_fixture) -> None:
     resposta = _enviar(cliente, conteudo, "nfe.xml", "application/xml")
     assert resposta.status_code == 200
     corpo = resposta.json()
-    assert corpo["versao_schema"] == "1.0"
+    assert corpo["versao_schema"] == "1.1"
     assert corpo["emitente"]["cnpj"] == "11222333000181"
     assert corpo["totais"]["valor_total"] == "5200.00"
     assert corpo["extracao"]["requer_revisao"] is False

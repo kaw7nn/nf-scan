@@ -9,16 +9,19 @@ julgamento sobre a nota.
 from __future__ import annotations
 
 import hashlib
+import io
 import mimetypes
 import time
+import zipfile
 
 from nfscan.detect.dialeto import detectar_dialeto
 from nfscan.extratores import obter
 from nfscan.extratores.generico import ExtratorGenerico
+from nfscan.extratores.pdf_texto import ExtratorPdfTexto
 from nfscan.extratores.registro import Extrator
 from nfscan.modelo import ArquivoOrigem, NotaFiscal, Problema
 from nfscan.modelo.coletor import requer_revisao
-from nfscan.sniff.container import Container, detectar_container
+from nfscan.sniff.container import Container, analisar, detectar_container
 from nfscan.validar import validar
 
 LIMITE_BYTES = 20 * 1024 * 1024
@@ -48,8 +51,10 @@ def parse(conteudo: bytes, nome: str, mime: str | None = None) -> NotaFiscal:
 
     inicio = time.perf_counter()
     arquivo = _origem(conteudo, nome, mime)
-    container = detectar_container(conteudo)
-    dialeto, confianca_deteccao = detectar_dialeto(conteudo, container)
+    # Uma única extração de texto por PDF, reaproveitada na detecção de dialeto
+    # e no extrator.
+    container, texto_pdf = analisar(conteudo)
+    dialeto, confianca_deteccao = detectar_dialeto(conteudo, container, texto_pdf)
 
     # Imagem e PDF sem camada de texto vão para o OCR pelo container, não pelo
     # dialeto: a detecção palpita DANFE_PDF para os dois, e o extrator de texto
@@ -62,7 +67,10 @@ def parse(conteudo: bytes, nome: str, mime: str | None = None) -> NotaFiscal:
         extrator = obter(dialeto) or ExtratorGenerico()
     extras: list[Problema] = []
     try:
-        nota = extrator.extrair(conteudo, arquivo)
+        if isinstance(extrator, ExtratorPdfTexto):
+            nota = extrator.extrair(conteudo, arquivo, texto=texto_pdf)
+        else:
+            nota = extrator.extrair(conteudo, arquivo)
     except Exception as erro:
         # O extrator do dialeto não deu conta: devolve nota vazia explicando,
         # em vez de propagar para o cliente.
@@ -101,28 +109,68 @@ def parse_zip(conteudo: bytes, nome: str) -> list[NotaFiscal]:
     um arquivo solto no pacote não invalide o lote inteiro. ZIP corrompido
     devolve uma única nota ilegível.
     """
-    import io
-    import zipfile
-
     try:
         pacote = zipfile.ZipFile(io.BytesIO(conteudo))
-        nomes = [item for item in pacote.namelist() if not item.endswith("/")]
+        entradas = [item for item in pacote.infolist() if not item.is_dir()]
     except zipfile.BadZipFile:
         return [ExtratorGenerico().extrair(conteudo, _origem(conteudo, nome, "application/zip"))]
 
-    if len(nomes) > MAXIMO_ENTRADAS_ZIP:
+    if len(entradas) > MAXIMO_ENTRADAS_ZIP:
         raise ArquivoGrande(
-            f"o ZIP traz {len(nomes)} entradas, acima do limite de {MAXIMO_ENTRADAS_ZIP}"
+            f"o ZIP traz {len(entradas)} entradas, acima do limite de {MAXIMO_ENTRADAS_ZIP}"
         )
 
     notas: list[NotaFiscal] = []
-    for interno in nomes:
-        try:
-            bruto = pacote.read(interno)
-        except Exception:
-            bruto = b""
-        notas.append(parse(bruto, interno))
+    for entrada in entradas:
+        notas.append(_ler_entrada_do_zip(pacote, entrada))
     return notas
+
+
+def _ler_entrada_do_zip(pacote: zipfile.ZipFile, entrada: zipfile.ZipInfo) -> NotaFiscal:
+    """Lê uma entrada do ZIP com limite de tamanho.
+
+    O tamanho é checado **antes** de materializar os bytes, e a leitura é
+    limitada: um ZIP de poucos KB pode declarar centenas de MB descomprimidos, e
+    ler sem teto é um estouro de memória remoto trivial. O cabeçalho pode mentir,
+    então a leitura também é limitada, não só a checagem.
+
+    Entrada grande demais vira nota com problema, nunca exceção: recusar o lote
+    inteiro descartaria as notas legíveis que vieram no mesmo pacote.
+    """
+    if entrada.file_size > LIMITE_BYTES:
+        return _nota_recusada(entrada.filename, entrada.file_size)
+    try:
+        with pacote.open(entrada) as fluxo:
+            bruto = fluxo.read(LIMITE_BYTES + 1)
+    except Exception:
+        bruto = b""
+    if len(bruto) > LIMITE_BYTES:
+        return _nota_recusada(entrada.filename, len(bruto))
+    return parse(bruto, entrada.filename)
+
+
+def _nota_recusada(nome: str, tamanho: int) -> NotaFiscal:
+    """Nota vazia explicando que a entrada excedeu o limite."""
+    arquivo = ArquivoOrigem(
+        nome=nome,
+        mime="application/octet-stream",
+        bytes=tamanho,
+        # Nada do conteúdo foi aceito, então o hash é o do vazio.
+        sha256=hashlib.sha256(b"").hexdigest(),
+    )
+    nota = ExtratorGenerico().extrair(b"", arquivo)
+    nota.extracao.problemas = [
+        Problema(
+            severidade="erro",
+            codigo="ENTRADA_GRANDE_DEMAIS",
+            campo=None,
+            mensagem=(
+                f"A entrada '{nome}' tem {tamanho} bytes descomprimidos e excede o "
+                f"limite de {LIMITE_BYTES}. As demais notas do pacote foram lidas."
+            ),
+        )
+    ]
+    return nota
 
 
 def parse_entrada(conteudo: bytes, nome: str, mime: str | None = None) -> list[NotaFiscal]:

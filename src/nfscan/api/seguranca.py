@@ -28,8 +28,12 @@ def conferir_chave(x_api_key: str | None = Header(default=None)) -> None:
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"{VARIAVEL_CHAVES} não configurada no servidor.",
         )
+    # Compara em bytes: compare_digest sobre str exige ASCII, e o Starlette
+    # decodifica cabeçalhos como latin-1. Uma chave com acento derrubava a
+    # requisição com 500 antes de qualquer autenticação.
+    recebida = (x_api_key or "").encode("utf-8")
     if x_api_key is None or not any(
-        secrets.compare_digest(x_api_key, valida) for valida in chaves
+        secrets.compare_digest(recebida, valida.encode("utf-8")) for valida in chaves
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Chave de API inválida."

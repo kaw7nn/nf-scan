@@ -17,7 +17,9 @@ from typing import Any
 from nfscan.sniff.container import Container
 
 DPI_RENDER = 300
-LIMIAR_BINARIZACAO = 160
+# Teto de páginas: um PDF-imagem de muitas páginas a 300 dpi enche o /tmp e a
+# memória, e nota fiscal não tem dezenas de páginas.
+MAXIMO_PAGINAS = 10
 _TIMEOUT_RENDER = 120
 
 
@@ -61,6 +63,10 @@ def imagens_de(conteudo: bytes, container: Container) -> list[Any]:
                     "pdftoppm",
                     "-r",
                     str(DPI_RENDER),
+                    "-f",
+                    "1",
+                    "-l",
+                    str(MAXIMO_PAGINAS),
                     "-png",
                     str(origem),
                     f"{pasta}/pag",
@@ -72,7 +78,7 @@ def imagens_de(conteudo: bytes, container: Container) -> list[Any]:
         except (OSError, subprocess.SubprocessError):
             return []
         imagens = []
-        for caminho in sorted(Path(pasta).glob("pag*.png")):
+        for caminho in sorted(Path(pasta).glob("pag*.png"))[:MAXIMO_PAGINAS]:
             try:
                 imagens.append(preparar(Image.open(caminho)))
             except Exception:

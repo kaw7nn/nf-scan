@@ -111,9 +111,11 @@ def test_data_incoerente_com_a_chave() -> None:
     assert "DATA_INCOERENTE_COM_CHAVE" in _codigos(nota)
 
 
-def test_valor_total_ausente_e_aviso() -> None:
+def test_valor_total_ausente_e_erro() -> None:
+    # Erro, não aviso: sem valor total a nota não serve para lançar nada, e um
+    # aviso não forçaria requer_revisao.
     problemas = {p.codigo: p for p in validar(_nota(totais=Totais()))}
-    assert problemas["VALOR_TOTAL_AUSENTE"].severidade == "aviso"
+    assert problemas["VALOR_TOTAL_AUSENTE"].severidade == "erro"
 
 
 # --- Foco de Revisão 5: devolução com valores negativos ---

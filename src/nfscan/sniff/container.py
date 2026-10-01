@@ -57,7 +57,9 @@ def _por_pdftotext(conteudo: bytes) -> str:
 
     É o caminho preferido porque reproduz as colunas do original fielmente, e o
     motor de âncoras depende disso para distinguir a coluna do frete da coluna
-    do total da nota. O conteúdo vai por stdin: nenhum dado fiscal toca o disco.
+    do total da nota. O conteúdo vai por stdin, sem passar por arquivo
+    temporário — ao contrário do caminho de OCR, onde ``pdftoppm`` exige um
+    arquivo de entrada e grava num diretório temporário de modo 0700.
     """
     caminho = shutil.which("pdftotext")
     if caminho is None:
@@ -105,17 +107,22 @@ def texto_de_pdf(conteudo: bytes) -> str:
     return _por_pdfplumber(conteudo)
 
 
-def detectar_container(conteudo: bytes) -> Container:
-    """Classifica o arquivo recebido."""
+def analisar(conteudo: bytes) -> tuple[Container, str]:
+    """Classifica o arquivo e devolve o texto já extraído, se for PDF.
+
+    Extrair o texto é a parte caríssima (``pdftotext`` com 60 s de timeout), e
+    antes ela acontecia três vezes por requisição: aqui, na detecção de dialeto
+    e no extrator. Devolver o texto junto com o veredito reduz a uma.
+    """
     if not conteudo:
-        return Container.DESCONHECIDO
+        return Container.DESCONHECIDO, ""
 
     bruto = conteudo.removeprefix(_BOM_UTF8)
 
     if bruto.startswith(b"PK\x03\x04"):
-        return Container.ZIP
+        return Container.ZIP, ""
     if any(bruto.startswith(assinatura) for assinatura in _ASSINATURAS_IMAGEM) or _e_bitmap(bruto):
-        return Container.IMAGEM
+        return Container.IMAGEM, ""
     if b"%PDF-" in bruto[:_JANELA_PDF]:
         texto = texto_de_pdf(conteudo)
         paginas = max(texto.count("\f") + 1, 1)
@@ -123,8 +130,13 @@ def detectar_container(conteudo: bytes) -> Container:
         # posicionamento, não conteúdo.
         legiveis = sum(1 for caractere in texto if not caractere.isspace())
         if legiveis >= MINIMO_CARACTERES_POR_PAGINA * paginas:
-            return Container.PDF_TEXTO
-        return Container.PDF_IMAGEM
+            return Container.PDF_TEXTO, texto
+        return Container.PDF_IMAGEM, texto
     if bruto.lstrip()[:1] == b"<":
-        return Container.XML
-    return Container.DESCONHECIDO
+        return Container.XML, ""
+    return Container.DESCONHECIDO, ""
+
+
+def detectar_container(conteudo: bytes) -> Container:
+    """Classifica o arquivo recebido."""
+    return analisar(conteudo)[0]

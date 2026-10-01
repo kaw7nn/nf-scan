@@ -34,7 +34,7 @@ def test_pipeline_anexa_problemas_da_validacao(ler_fixture) -> None:
 def test_resultado_e_serializavel_em_json(ler_fixture) -> None:
     conteudo, _ = ler_fixture("nfe_4_00_simples.xml", "application/xml")
     bruto = json.loads(parse(conteudo, "n.xml").model_dump_json())
-    assert bruto["versao_schema"] == "1.0"
+    assert bruto["versao_schema"] == "1.1"
 
 
 def test_arquivo_acima_do_limite_levanta() -> None:

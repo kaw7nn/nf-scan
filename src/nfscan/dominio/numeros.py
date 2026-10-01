@@ -45,10 +45,11 @@ def _desambiguar_separadores(texto: str, formato: Formato) -> str:
 
     1. Havendo vírgula, ela é o separador decimal e o ponto é milhar.
     2. Mais de um ponto só faz sentido como milhar.
-    3. Um ponto é milhar quando a parte à esquerda tem de 1 a 3 dígitos e a
-       da direita tem exatamente 3 — a forma de um grupo de milhar. Com
-       parte inteira mais longa, como ``"1234.567"``, não há grupo possível e
-       o ponto é decimal.
+    3. Um ponto é milhar quando a parte à esquerda tem de 1 a 3 dígitos, não
+       começa com zero, e a da direita tem exatamente 3 — a forma de um grupo
+       de milhar. Com parte inteira mais longa, como ``"1234.567"``, não há
+       grupo possível, e com zero à esquerda, como ``"0.500"``, o grupo seria
+       impossível: nos dois casos o ponto é decimal.
     """
     if formato == "ponto_decimal":
         return texto
@@ -58,7 +59,14 @@ def _desambiguar_separadores(texto: str, formato: Formato) -> str:
         return texto.replace(".", "")
     if "." in texto:
         inteiro, _, fracao = texto.rpartition(".")
-        if len(fracao) == _TAMANHO_GRUPO_MILHAR and 1 <= len(inteiro) <= _TAMANHO_GRUPO_MILHAR:
+        milhar_possivel = (
+            len(fracao) == _TAMANHO_GRUPO_MILHAR
+            and 1 <= len(inteiro) <= _TAMANHO_GRUPO_MILHAR
+            # Um grupo de milhar nunca começa com zero: "0.500" é meio, não
+            # quinhentos, e "0.025" é a alíquota de 2,5%, não vinte e cinco.
+            and not inteiro.startswith("0")
+        )
+        if milhar_possivel:
             return texto.replace(".", "")
     return texto
 

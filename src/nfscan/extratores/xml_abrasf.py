@@ -27,6 +27,7 @@ from nfscan.modelo import (
     Item,
     NotaFiscal,
     Participante,
+    Problema,
     Retencoes,
     Totais,
     Tributos,
@@ -56,8 +57,17 @@ NOMES = {
 
 
 def _dec(bruto: str | None) -> Decimal | None:
-    """ABRASF não padroniza o separador decimal: alguns municípios usam vírgula."""
-    return para_decimal(bruto, formato="auto")
+    """Converte valor de ABRASF, decidindo o formato pelo próprio conteúdo.
+
+    O XSD manda ``xsd:decimal``, com ponto decimal, mas parte dos municípios
+    emite ``12.000,00``. Aplicar ``"auto"`` em tudo fazia ``<ValorIss>1.500``
+    virar mil e quinhentos reais em vez de um e cinquenta. A vírgula é o
+    discriminador: havendo vírgula, é notação brasileira; sem vírgula, o ponto
+    é decimal como o XSD determina.
+    """
+    if bruto is None:
+        return None
+    return para_decimal(bruto, formato="auto" if "," in bruto else "ponto_decimal")
 
 
 class ExtratorAbrasf:
@@ -69,7 +79,8 @@ class ExtratorAbrasf:
     def extrair(self, conteudo: bytes, arquivo: ArquivoOrigem) -> NotaFiscal:
         inicio = time.perf_counter()
         coletor = Coletor(CONFIANCA["xml_tolerante"])
-        raiz = carregar(conteudo)
+        documento_xml = carregar(conteudo)
+        raiz, problemas = self._escopo_da_nota(documento_xml)
 
         documento = self._documento(raiz, coletor)
         emitente = self._participante(raiz, "PrestadorServico", "emitente", coletor)
@@ -89,11 +100,40 @@ class ExtratorAbrasf:
                 motor=self.motor,
                 arquivo=arquivo,
                 confianca_global=confianca,
-                requer_revisao=requer_revisao(confianca, []),
+                requer_revisao=requer_revisao(confianca, problemas),
                 duracao_ms=int((time.perf_counter() - inicio) * 1000),
                 campos=coletor.campos,
+                problemas=problemas,
             ),
         )
+
+    def _escopo_da_nota(self, documento_xml: Any) -> tuple[Any, list[Problema]]:
+        """Restringe a extração à primeira nota do envelope.
+
+        ``ConsultarNfseResposta`` carrega de zero a N ``CompNfse`` — e é um dos
+        marcadores de detecção deste dialeto, então é entrada esperada. Ler por
+        nome local a partir da raiz pegava o primeiro elemento com aquele nome
+        em **qualquer** nota: um campo ausente na primeira era preenchido com o
+        valor da segunda, misturando dinheiro de notas diferentes.
+        """
+        blocos = todos_elementos(documento_xml, "InfNfse") or todos_elementos(
+            documento_xml, "CompNfse"
+        )
+        if not blocos:
+            return documento_xml, []
+        if len(blocos) > 1:
+            return blocos[0], [
+                Problema(
+                    severidade="aviso",
+                    codigo="MULTIPLAS_NOTAS_NO_ARQUIVO",
+                    campo=None,
+                    mensagem=(
+                        f"O arquivo traz {len(blocos)} notas; apenas a primeira foi "
+                        f"extraída. Envie uma nota por requisição, ou um ZIP."
+                    ),
+                )
+            ]
+        return blocos[0], []
 
     def _documento(self, raiz: Any, coletor: Coletor) -> Documento:
         def ler(chave: str) -> str | None:

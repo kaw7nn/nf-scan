@@ -116,9 +116,15 @@ def extrair_chave(texto: str) -> ChaveAcesso | None:
     Tolera separadores entre os dígitos. Devolve ``None`` quando nenhuma
     candidata passa no DV — assim ruído numérico não é confundido com chave.
     """
-    for achado in _CANDIDATA.finditer(texto or ""):
+    alvo = texto or ""
+    posicao = 0
+    while (achado := _CANDIDATA.search(alvo, posicao)) is not None:
         try:
             return parse_chave(achado.group())
         except ChaveInvalida:
-            continue
+            # Recomeça um caractere à frente, não depois da candidata: um
+            # dígito solto logo antes da chave (o número ou a série impressos
+            # na caixa ao lado) forma uma candidata falsa que engole 43 dígitos
+            # da chave verdadeira, e pular por cima dela perderia a chave.
+            posicao = achado.start() + 1
     return None

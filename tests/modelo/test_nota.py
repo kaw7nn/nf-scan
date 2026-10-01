@@ -27,7 +27,7 @@ def _extracao_minima() -> Extracao:
 
 def test_nota_minima_e_construivel() -> None:
     nota = NotaFiscal(documento=Documento(tipo="nfe"), extracao=_extracao_minima())
-    assert nota.versao_schema == "1.0"
+    assert nota.versao_schema == "1.1"
     assert nota.itens == []
     assert nota.destinatario is None
 

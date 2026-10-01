@@ -20,6 +20,13 @@ RUN uv sync --frozen --all-extras --no-dev --no-install-project
 COPY src ./src
 RUN uv sync --frozen --all-extras --no-dev
 
+# Roda sem privilegio: o servico parseia arquivo de terceiros e chama
+# pdftotext, pdftoppm e tesseract como subprocesso. Root aqui transformaria uma
+# falha em qualquer um deles em comprometimento do container.
+RUN useradd --system --no-create-home --uid 10001 nfscan \
+    && chown -R nfscan:nfscan /app
+USER nfscan
+
 # Chama o uvicorn do venv direto, sem `uv run`: com `uv run` o container
 # revalida e reconstroi o pacote a cada start, o que atrasa a subida e exige
 # permissao de escrita em /app em tempo de execucao.

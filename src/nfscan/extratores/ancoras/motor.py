@@ -46,6 +46,9 @@ TOLERANCIA_COLUNA = 5
 _PALAVRA = re.compile(r"[^\W\d_]{3,}")
 _MINIMO_PALAVRAS_CABECALHO = 2
 
+# Célula de uma linha tabular: texto separado por duas ou mais espaços.
+_CELULA = re.compile(r"\S(?:.*?\S)?(?=\s{2,}|$)")
+
 
 @dataclass(frozen=True, slots=True)
 class Ancora:
@@ -143,22 +146,78 @@ def valor_na_coluna(texto: str, rotulo: str) -> str | None:
         posicao = linha.upper().find(alvo)
         if posicao == -1:
             continue
-        inicio = posicao - TOLERANCIA_COLUNA
-        fim = posicao + len(alvo) + TOLERANCIA_COLUNA
-        for seguinte in linhas[indice + 1 : indice + 1 + LINHAS_ABAIXO]:
-            achados = list(_NUMERO_BR.finditer(seguinte))
-            if not achados:
-                if _e_cabecalho(seguinte):
-                    # Começou outra tabela antes de aparecer valor: o campo
-                    # desta está ausente.
-                    return None
-                continue
-            for achado in achados:
-                if achado.start() < fim and achado.end() > inicio:
-                    return achado.group()
-            # A linha de valores desta tabela existe e não tem número nesta
-            # coluna: o campo está ausente. Não desce mais.
-            return None
+        valor = _abaixo_do_rotulo(linhas, indice, posicao, len(alvo))
+        if valor is not None:
+            return valor
+        # Esta ocorrência do rótulo não tinha valor sob ela — uma menção em
+        # legenda, cabeçalho repetido ou "dados adicionais". Tenta a próxima
+        # em vez de desistir do campo.
+    return None
+
+
+def _celulas(linha: str) -> list[tuple[int, int]]:
+    """Faixas das células da linha, separadas por duas ou mais espaços."""
+    return [(achado.start(), achado.end()) for achado in _CELULA.finditer(linha)]
+
+
+def _indice_da_celula(celulas: list[tuple[int, int]], posicao: int) -> int | None:
+    for indice, (inicio, fim) in enumerate(celulas):
+        if inicio <= posicao < fim:
+            return indice
+    return None
+
+
+def _por_sobreposicao(
+    achados: list[re.Match[str]], posicao: int, comprimento: int
+) -> str | None:
+    """Alternativa geométrica, para quando a linha de valores é incompleta.
+
+    Vale o número de maior sobreposição com a faixa do rótulo, desempatando por
+    distância de centro. Menos confiável que a ordinal, porque sobreposição
+    crua favorece número largo: um ``5.200,00`` da coluna vizinha vence um
+    ``0,00`` da coluna certa.
+    """
+    inicio = posicao - TOLERANCIA_COLUNA
+    fim = posicao + comprimento + TOLERANCIA_COLUNA
+    centro_rotulo = posicao + comprimento / 2
+
+    def pontuacao(achado: re.Match[str]) -> tuple[int, float]:
+        sobreposicao = min(achado.end(), fim) - max(achado.start(), inicio)
+        centro = (achado.start() + achado.end()) / 2
+        return sobreposicao, -abs(centro - centro_rotulo)
+
+    melhor = max(achados, key=pontuacao)
+    return melhor.group() if pontuacao(melhor)[0] > 0 else None
+
+
+def _abaixo_do_rotulo(
+    linhas: list[str], indice: int, posicao: int, comprimento: int
+) -> str | None:
+    """Procura o valor da coluna sob uma ocorrência específica do rótulo.
+
+    A regra principal é **ordinal**: quando a linha de valores traz exatamente
+    um número por célula do cabeçalho, o n-ésimo número é o valor da n-ésima
+    coluna. É a única regra imune a deslocamento uniforme entre as duas linhas,
+    e isso acontece de verdade — o OCR engole a indentação da linha de valores e
+    desloca tudo alguns caracteres à esquerda do cabeçalho, situação em que
+    casar por posição horizontal erra a coluna.
+
+    Quando as contagens não batem (coluna sem valor, número de ruído), cai para
+    a comparação geométrica.
+    """
+    celulas = _celulas(linhas[indice])
+    posicao_na_tabela = _indice_da_celula(celulas, posicao)
+
+    for seguinte in linhas[indice + 1 : indice + 1 + LINHAS_ABAIXO]:
+        achados = list(_NUMERO_BR.finditer(seguinte))
+        if not achados:
+            if _e_cabecalho(seguinte):
+                # Começou outra tabela antes de aparecer valor.
+                return None
+            continue
+        if posicao_na_tabela is not None and len(achados) == len(celulas):
+            return achados[posicao_na_tabela].group()
+        return _por_sobreposicao(achados, posicao, comprimento)
     return None
 
 

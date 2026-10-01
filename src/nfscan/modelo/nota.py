@@ -108,6 +108,12 @@ class Totais(Base):
     frete: Dinheiro | None = None
     seguro: Dinheiro | None = None
     outras_despesas: Dinheiro | None = None
+    # IPI e ICMS-ST somam ao total da NF-e e precisam estar aqui: sem eles o
+    # consumidor que recompõe o total a partir dos componentes chega a menos do
+    # que a nota realmente vale, e a conferência cruzada acusa divergência
+    # falsa em toda nota de material com IPI — cimento, aço, revestimento.
+    ipi: Dinheiro | None = None
+    icms_st: Dinheiro | None = None
     valor_total: Dinheiro | None = None
     tributos: Tributos | None = None
 

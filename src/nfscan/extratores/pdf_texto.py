@@ -280,8 +280,11 @@ class ExtratorPdfTexto:
     motor = "ancoras_pdf"
     dialetos: tuple[Dialeto, ...] = (Dialeto.DANFE_PDF, Dialeto.NFCE_CUPOM)
 
-    def extrair(self, conteudo: bytes, arquivo: ArquivoOrigem) -> NotaFiscal:
-        texto = texto_de_pdf(conteudo)
+    def extrair(
+        self, conteudo: bytes, arquivo: ArquivoOrigem, texto: str | None = None
+    ) -> NotaFiscal:
+        if texto is None:
+            texto = texto_de_pdf(conteudo)
         dialeto = Dialeto.NFCE_CUPOM if "CUPOM" in texto.upper() else Dialeto.DANFE_PDF
         return extrair_de_texto(
             texto, arquivo, dialeto, CONFIANCA["pdf_ancora"], self.motor

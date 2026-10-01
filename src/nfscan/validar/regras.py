@@ -15,7 +15,7 @@ from decimal import Decimal
 
 from nfscan.dominio.chave import chave_valida, parse_chave
 from nfscan.dominio.documentos import cnpj_valido, cpf_valido
-from nfscan.modelo import NotaFiscal, Problema
+from nfscan.modelo import NotaFiscal, Problema, Totais
 
 TOLERANCIA = Decimal("0.01")
 
@@ -142,12 +142,58 @@ def _validar_soma_dos_itens(nota: NotaFiscal, problemas: list[Problema]) -> None
         )
 
 
+def _esperado_mercadoria(totais: Totais) -> Decimal:
+    """``vNF = vProd + vIPI + vST + vFrete + vSeg + vOutro - vDesc``."""
+    return (
+        _ou_zero(totais.valor_produtos)
+        + _ou_zero(totais.ipi)
+        + _ou_zero(totais.icms_st)
+        + _ou_zero(totais.frete)
+        + _ou_zero(totais.seguro)
+        + _ou_zero(totais.outras_despesas)
+        - _ou_zero(totais.desconto)
+    )
+
+
+def _esperado_servico(totais: Totais) -> Decimal:
+    """Valor líquido da NFS-e: serviços, menos deduções, menos retenções.
+
+    A fórmula da NF-e não se aplica aqui. ``ValorLiquidoNfse`` desconta as
+    retenções federais e municipais, e usar a soma de mercadoria faria **toda**
+    nota de serviço acusar divergência — treinando o consumidor a ignorar o
+    único sinal que lhe pedimos para observar.
+    """
+    retencoes = totais.tributos.retencoes if totais.tributos is not None else None
+    retido = (
+        sum(
+            (
+                _ou_zero(valor)
+                for valor in (
+                    retencoes.pis,
+                    retencoes.cofins,
+                    retencoes.csll,
+                    retencoes.irrf,
+                    retencoes.inss,
+                    retencoes.iss,
+                )
+            ),
+            start=_ZERO,
+        )
+        if retencoes is not None
+        else _ZERO
+    )
+    return _ou_zero(totais.valor_servicos) - _ou_zero(totais.desconto) - retido
+
+
 def _validar_totais(nota: NotaFiscal, problemas: list[Problema]) -> None:
     totais = nota.totais
     if totais is None or totais.valor_total is None:
         problemas.append(
             Problema(
-                severidade="aviso",
+                # Severidade erro, não aviso: sem valor total a nota não serve
+                # para lançar nada, e um aviso não forçaria requer_revisao.
+                # Era assim que um XML truncado saía marcado como confiável.
+                severidade="erro",
                 codigo="VALOR_TOTAL_AUSENTE",
                 campo="totais.valor_total",
                 mensagem="A nota não traz valor total legível.",
@@ -158,17 +204,16 @@ def _validar_totais(nota: NotaFiscal, problemas: list[Problema]) -> None:
     _validar_soma_dos_itens(nota, problemas)
 
     esperado = (
-        _ou_zero(totais.valor_produtos)
-        + _ou_zero(totais.valor_servicos)
-        + _ou_zero(totais.frete)
-        + _ou_zero(totais.seguro)
-        + _ou_zero(totais.outras_despesas)
-        - _ou_zero(totais.desconto)
+        _esperado_servico(totais)
+        if nota.documento.tipo == "nfse"
+        else _esperado_mercadoria(totais)
     )
     if abs(esperado - totais.valor_total) > TOLERANCIA:
         problemas.append(
             Problema(
-                severidade="aviso",
+                # Dinheiro que não fecha é erro, não aviso: o consumidor vai
+                # lançar esse valor na contabilidade de uma obra.
+                severidade="erro",
                 codigo="TOTAL_DIVERGENTE",
                 campo="totais.valor_total",
                 mensagem=(

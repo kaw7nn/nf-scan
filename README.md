@@ -113,7 +113,7 @@ lote maior que 50; `422` requisição malformada; `503` servidor sem
 
 ```json
 {
-  "versao_schema": "1.0",
+  "versao_schema": "1.1",
   "documento": {
     "tipo": "nfe", "modelo": "55",
     "chave_acesso": "35260911222333000181550010000012341123456787",
@@ -130,7 +130,8 @@ lote maior que 50; `422` requisição malformada; `503` servidor sem
       "quantidade": "100.0000", "valor_unitario": "38.5000", "valor_total": "3850.00",
       "impostos": { "icms": { "cst": "00", "aliquota": "18.00", "valor": "693.00" } } }
   ],
-  "totais": { "valor_produtos": "5050.00", "frete": "150.00", "valor_total": "5200.00" },
+  "totais": { "valor_produtos": "5050.00", "frete": "150.00", "ipi": "0.00",
+              "icms_st": "0.00", "valor_total": "5200.00" },
   "extracao": {
     "dialeto": "nfe_4.00", "motor": "nfelib",
     "confianca_global": 1.0,
@@ -153,9 +154,11 @@ informação.
 
 Esta é a parte que o integrador precisa entender.
 
-`extracao.confianca_global` é a média das confianças dos campos efetivamente
-extraídos. `extracao.campos["caminho.do.campo"]` dá a confiança e a proveniência
-de cada um, e é por aí que você decide campo a campo.
+`extracao.confianca_global` é a confiança do **elo mais fraco**: o mínimo entre
+os campos efetivamente extraídos. Acrescentar campo nunca sobe esse número, e
+ele nunca afirma mais do que o campo menos confiável sustenta. Para decidir
+campo a campo, use `extracao.campos["caminho.do.campo"]`, que dá a confiança e a
+proveniência de cada um — é ali que mora a informação fina.
 
 `requer_revisao` é `true` quando a confiança global fica abaixo de **0.85** ou
 quando existe algum problema de severidade `erro`. Trate como: *não grave sem
@@ -175,11 +178,21 @@ As faixas, por origem do valor:
 `extracao.problemas` traz achados da validação cruzada. O `codigo` é estável e
 serve para tratar em código; a `mensagem` é para humano e pode mudar.
 
-Códigos: `ARQUIVO_ILEGIVEL`, `EXTRACAO_FALHOU`, `CHAVE_INVALIDA`,
-`CHAVE_DV_INVALIDO`, `EMITENTE_AUSENTE`, `CNPJ_EMITENTE_INVALIDO`,
-`CNPJ_DESTINATARIO_INVALIDO`, `CNPJ_ILEGIVEL`, `SOMA_ITENS_DIVERGENTE`,
-`TOTAL_DIVERGENTE`, `VALOR_TOTAL_AUSENTE`, `DATA_INCOERENTE_COM_CHAVE`,
-`ITENS_NAO_EXTRAIDOS`, `OCR_IDIOMA_AUSENTE`, `OCR_INDISPONIVEL`.
+Severidade `erro` (força `requer_revisao`): `ARQUIVO_ILEGIVEL`,
+`EXTRACAO_FALHOU`, `CHAVE_INVALIDA`, `CHAVE_DV_INVALIDO`, `EMITENTE_AUSENTE`,
+`CNPJ_EMITENTE_INVALIDO`, `CNPJ_DESTINATARIO_INVALIDO`, `VALOR_TOTAL_AUSENTE`,
+`TOTAL_DIVERGENTE`, `ENTRADA_GRANDE_DEMAIS`, `OCR_INDISPONIVEL`.
+
+Severidade `aviso`: `SOMA_ITENS_DIVERGENTE`, `DATA_INCOERENTE_COM_CHAVE`,
+`CNPJ_ILEGIVEL`, `ITENS_NAO_EXTRAIDOS`, `MULTIPLAS_NOTAS_NO_ARQUIVO`,
+`OCR_IDIOMA_AUSENTE`.
+
+`TOTAL_DIVERGENTE` e `VALOR_TOTAL_AUSENTE` são **erro** e não aviso: o
+consumidor vai lançar esse valor na contabilidade de uma obra. A soma do
+documento é reconciliada pela fórmula do próprio tipo — `vProd + vIPI + vST +
+vFrete + vSeg + vOutro − vDesc` para mercadoria, e serviços menos deduções menos
+retenções para NFS-e, cujo `ValorLiquidoNfse` a fórmula de mercadoria nunca
+reproduziria.
 
 A validação cruzada é a rede de segurança do OCR. Se a leitura trocar um dígito
 de valor, a soma não fecha e sai `TOTAL_DIVERGENTE` — foi assim que um
@@ -230,6 +243,12 @@ O perfil é escolhido pelo maior número de marcadores presentes no texto.
   `tesseract-data-por`, ou use a imagem Docker, que já traz.
 - **Não emite nota, não persiste nada.** O serviço é *stateless*; quem guarda é
   o consumidor.
+- **Um arquivo por nota.** Um envelope ABRASF `ConsultarNfseResposta` com várias
+  notas tem só a primeira extraída, com o aviso `MULTIPLAS_NOTAS_NO_ARQUIVO`.
+  Para ler várias, mande um ZIP em `/v1/notas/lote`.
+- **Limites por requisição:** 20 MB por arquivo, 50 arquivos ou entradas de ZIP,
+  10 páginas por PDF-imagem no OCR. Entrada de ZIP acima do limite vira nota com
+  `ENTRADA_GRANDE_DEMAIS` e **não** descarta as demais do pacote.
 - O log registra métrica (dialeto, confiança, duração, sha256 e códigos de
   problema), **nunca conteúdo da nota**.
 

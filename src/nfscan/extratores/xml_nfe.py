@@ -21,6 +21,7 @@ from typing import Any
 
 from nfscan.detect.dialeto import Dialeto
 from nfscan.dominio.chave import ChaveInvalida, parse_chave
+from nfscan.dominio.codificacao import texto_de_xml
 from nfscan.dominio.numeros import para_data_hora, para_decimal
 from nfscan.dominio.textos import limpar_texto
 from nfscan.modelo import (
@@ -190,7 +191,7 @@ class ExtratorNfe:
         from nfelib.nfe.bindings.v4_0.nfe_v4_00 import Nfe
         from nfelib.nfe.bindings.v4_0.proc_nfe_v4_00 import NfeProc
 
-        texto = conteudo.decode("utf-8", errors="replace")
+        texto, _ = texto_de_xml(conteudo)
         try:
             proc = NfeProc.from_xml(texto)
             if proc.NFe is not None:
@@ -462,6 +463,10 @@ class ExtratorNfe:
             seguro=coletor.registrar("totais.seguro", _dec(tot.vSeg), f"{raiz}/vSeg"),
             outras_despesas=coletor.registrar(
                 "totais.outras_despesas", _dec(tot.vOutro), f"{raiz}/vOutro"
+            ),
+            ipi=coletor.registrar("totais.ipi", _dec(getattr(tot, "vIPI", None)), f"{raiz}/vIPI"),
+            icms_st=coletor.registrar(
+                "totais.icms_st", _dec(getattr(tot, "vST", None)), f"{raiz}/vST"
             ),
             valor_total=coletor.registrar("totais.valor_total", _dec(tot.vNF), f"{raiz}/vNF"),
             tributos=Tributos(

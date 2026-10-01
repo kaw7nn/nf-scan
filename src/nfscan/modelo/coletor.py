@@ -50,11 +50,21 @@ class Coletor:
         return dict(self._campos)
 
     def confianca_global(self) -> float:
-        """Média das confianças dos campos efetivamente extraídos."""
+        """Confiança do elo mais fraco entre os campos extraídos.
+
+        A média invertia o sinal: um DANFE em que só a chave foi lida pontuava
+        0.75, e o mesmo DANFE com a chave mais cinco âncoras mais fracas
+        pontuava 0.625 — extração mais completa com confiança menor, o oposto
+        do que o número deve comunicar.
+
+        O mínimo é monótono e conservador: acrescentar campo nunca sobe a
+        confiança global, e ela nunca afirma mais do que o campo menos
+        confiável sustenta. A decisão campo a campo é feita em
+        ``extracao.campos``, que é onde a informação fina mora.
+        """
         if not self._campos:
             return 0.0
-        total = sum(campo.confianca for campo in self._campos.values())
-        return round(total / len(self._campos), 4)
+        return round(min(campo.confianca for campo in self._campos.values()), 4)
 
 
 def requer_revisao(confianca_global: float, problemas: Sequence[Problema]) -> bool:

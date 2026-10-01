@@ -3,6 +3,7 @@
 from nfscan.sniff.container import (
     MINIMO_CARACTERES_POR_PAGINA,
     Container,
+    analisar,
     detectar_container,
     texto_de_pdf,
 )
@@ -10,6 +11,7 @@ from nfscan.sniff.container import (
 __all__ = [
     "MINIMO_CARACTERES_POR_PAGINA",
     "Container",
+    "analisar",
     "detectar_container",
     "texto_de_pdf",
 ]
