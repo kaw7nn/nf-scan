@@ -437,5 +437,3 @@ uv run ruff check .      # lint
 uv run mypy src          # tipagem estrita
 ```
 
-Documentação de projeto em [`docs/`](docs/): a spec de
-design e o plano de implementação.
