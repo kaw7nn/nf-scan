@@ -12,3 +12,13 @@ SIGLA_POR_CODIGO: dict[str, str] = {
 def sigla_por_codigo(codigo: str) -> str | None:
     """Devolve a sigla da UF, ou ``None`` se o código não existir."""
     return SIGLA_POR_CODIGO.get(codigo)
+
+
+CODIGO_POR_SIGLA: dict[str, str] = {
+    sigla: codigo for codigo, sigla in SIGLA_POR_CODIGO.items()
+}
+
+
+def codigo_por_sigla(sigla: str | None) -> str | None:
+    """Devolve o código IBGE da UF, ou ``None`` se a sigla não existir."""
+    return CODIGO_POR_SIGLA.get((sigla or "").strip().upper())
