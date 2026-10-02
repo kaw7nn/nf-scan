@@ -109,7 +109,7 @@ def extrair_de_texto(
             )
         )
         return _montar(
-            Documento(), None, None, None, coletor, problemas, arquivo, dialeto, motor, inicio
+            Documento(), None, None, None, None, coletor, problemas, arquivo, dialeto, motor, inicio
         )
 
     chave = extrair_chave(texto)
@@ -160,6 +160,7 @@ def extrair_de_texto(
     )
 
     emitente = _emitente(chave, valores, perfil.nome, coletor, problemas)
+    destinatario = _destinatario(valores, perfil.nome, coletor, problemas)
     totais = _totais(valores, perfil.nome, coletor)
     adicionais = coletor.registrar(
         "informacoes_adicionais",
@@ -180,7 +181,17 @@ def extrair_de_texto(
     )
 
     return _montar(
-        documento, emitente, totais, adicionais, coletor, problemas, arquivo, dialeto, motor, inicio
+        documento,
+        emitente,
+        destinatario,
+        totais,
+        adicionais,
+        coletor,
+        problemas,
+        arquivo,
+        dialeto,
+        motor,
+        inicio,
     )
 
 
@@ -239,11 +250,50 @@ def _emitente(
     inscricao = coletor.registrar(
         "emitente.inscricao_estadual",
         limpar_texto(valores.get("emitente.inscricao_estadual")),
-        f"regex:{perfil}:inscricao_estadual",
+        f"ancora:{perfil}:inscricao_estadual",
     )
-    if cnpj is None and inscricao is None:
+    razao = coletor.registrar(
+        "emitente.razao_social",
+        limpar_texto(valores.get("emitente.razao_social")),
+        f"regex:{perfil}:razao_social",
+    )
+    if cnpj is None and inscricao is None and razao is None:
         return None
-    return Participante(cnpj=cnpj, inscricao_estadual=inscricao)
+    return Participante(cnpj=cnpj, inscricao_estadual=inscricao, razao_social=razao)
+
+
+def _destinatario(
+    valores: dict[str, str], perfil: str, coletor: Coletor, problemas: list[Problema]
+) -> Participante | None:
+    """Monta o destinatário a partir das âncoras de coluna do bloco dele."""
+    cnpj = cpf = None
+    bruto = valores.get("destinatario.cnpj")
+    if bruto is not None:
+        cnpj, cpf = normalizar_cnpj_cpf(bruto)
+        if cnpj is None and cpf is None:
+            problemas.append(
+                Problema(
+                    severidade="aviso",
+                    codigo="CNPJ_ILEGIVEL",
+                    campo="destinatario.cnpj",
+                    mensagem=(
+                        f"O identificador lido para o destinatário não passou no dígito "
+                        f"verificador e foi descartado: {bruto}."
+                    ),
+                )
+            )
+        else:
+            coletor.registrar(
+                "destinatario.cnpj", cnpj or cpf, f"ancora:{perfil}:destinatario_cnpj"
+            )
+    razao = coletor.registrar(
+        "destinatario.razao_social",
+        limpar_texto(valores.get("destinatario.razao_social")),
+        f"ancora:{perfil}:destinatario_razao_social",
+    )
+    if cnpj is None and cpf is None and razao is None:
+        return None
+    return Participante(cnpj=cnpj, cpf=cpf, razao_social=razao)
 
 
 def _totais(valores: dict[str, str], perfil: str, coletor: Coletor) -> Totais | None:
@@ -269,6 +319,20 @@ def _totais(valores: dict[str, str], perfil: str, coletor: Coletor) -> Totais | 
         seguro=coletor.registrar(
             "totais.seguro", _dec(valores.get("totais.seguro")), f"regex:{perfil}:seguro"
         ),
+        # Somam ao total da nota. Sem eles a conferência cruzada acusa
+        # divergência falsa em qualquer nota com substituição tributária,
+        # IPI ou despesa acessória.
+        icms_st=coletor.registrar(
+            "totais.icms_st", _dec(valores.get("totais.icms_st")), f"ancora:{perfil}:icms_st"
+        ),
+        ipi=coletor.registrar(
+            "totais.ipi", _dec(valores.get("totais.ipi")), f"ancora:{perfil}:ipi"
+        ),
+        outras_despesas=coletor.registrar(
+            "totais.outras_despesas",
+            _dec(valores.get("totais.outras_despesas")),
+            f"ancora:{perfil}:outras_despesas",
+        ),
         tributos=Tributos(
             icms_base=coletor.registrar(
                 "totais.tributos.icms_base",
@@ -287,6 +351,7 @@ def _totais(valores: dict[str, str], perfil: str, coletor: Coletor) -> Totais | 
 def _montar(
     documento: Documento,
     emitente: Participante | None,
+    destinatario: Participante | None,
     totais: Totais | None,
     adicionais: str | None,
     coletor: Coletor,
@@ -300,6 +365,7 @@ def _montar(
     return NotaFiscal(
         documento=documento,
         emitente=emitente,
+        destinatario=destinatario,
         totais=totais,
         informacoes_adicionais=adicionais,
         extracao=Extracao(

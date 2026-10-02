@@ -38,7 +38,7 @@ A resposta **sempre** vem completa. Nota ilegível não devolve erro HTTP: devol
 | **NFC-e** (consumidor, modelo 65) | XML 4.00 | `nfe_4.00` | **1.0** | Idem |
 | **NFS-e nacional** (serviço) | XML 1.0 (padrão ADN) | `nfse_nacional_1.0` | **1.0** | Documento, prestador, tomador, serviço, valores e retenções federais e municipais |
 | **NFS-e municipal** (serviço) | XML ABRASF 2.0x | `abrasf_2.0x` | 0.90 | Idem, conforme o que o layout do município traz |
-| **DANFE** (representação impressa da NF-e) | PDF com camada de texto | `danfe_pdf` | 0.75 na chave, 0.50 nos demais | Chave, emitente, data, totais e tributos. **Sem itens** |
+| **DANFE** (representação impressa da NF-e) | PDF com camada de texto | `danfe_pdf` | 0.75 na chave, 0.50 nos demais | Chave, número, série, emitente e destinatário (nome, CNPJ, IE), natureza da operação, data, totais e tributos. **Sem itens** |
 | **Cupom NFC-e / DANFE** | PDF-imagem ou foto (PNG, JPG, TIFF, BMP, GIF) | `nfce_cupom`, `danfe_pdf` | 0.50 na chave, 0.30 nos demais | Chave, emitente, data, totais em melhor esforço. **Sem itens** |
 
 **Não contempla:** CT-e, MDF-e, BP-e, cupom não fiscal, recibo, fatura avulsa e
@@ -392,9 +392,23 @@ campos:
 ```
 
 Use `coluna` no bloco tabular do DANFE, onde os rótulos ficam numa linha e os
-valores alinhados abaixo: a âncora casa o n-ésimo número com a n-ésima coluna do
+valores alinhados abaixo: a âncora casa o n-ésimo valor com a n-ésima coluna do
 cabeçalho, o que sobrevive ao deslocamento que o OCR introduz. Use `regex`
 quando rótulo e valor estão juntos e não há coluna vizinha que confunda.
+
+`tipo` diz o que conta como valor sob o rótulo, porque num DANFE nem tudo é
+dinheiro:
+
+| `tipo` | Reconhece | Exemplo de rótulo |
+|---|---|---|
+| `moeda` (padrão) | `1.234,56` | `VALOR TOTAL DA NOTA` |
+| `data` | `29/09/2026` | `DATA EMISSAO` |
+| `documento` | CNPJ ou CPF, com ou sem máscara | `CNPJ/CPF` |
+| `inteiro` | sequência de 4 dígitos ou mais | `INSCRICAO ESTADUAL` |
+| `texto` | a célula inteira da coluna | `NOME / RAZAO SOCIAL` |
+
+Os rótulos são comparados **ignorando acento e caixa**, então basta escrever
+`NATUREZA DA OPERACAO` para casar também com `Natureza da Operação`.
 
 ## Limitações declaradas
 

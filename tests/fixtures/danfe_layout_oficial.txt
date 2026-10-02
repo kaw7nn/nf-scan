@@ -1,0 +1,45 @@
+RECEBEMOS DE FORNECEDOR DE MATERIAIS LTDA OS PRODUTOS CONSTANTES NA NOTA FISCAL INDICADA AO LADO
+
+CONSTRUTORA EXEMPLO LTDA
+
+DATA DO RECEBIMENTO                    CERTIFICACAO E ASSINATURA DO RECEBEDOR
+
+
+
+                                 FORNECEDOR DE MATERIAIS                                        DANFE
+                                                                                          DOCUMENTO AUXILIAR DE
+                                 LTDA
+                                                                                          NOTA FISCAL ELETRONICA
+
+                                                                                                  0 - ENTRADA
+                                 RUA A, No 100 - CENTRO                                    1     1 - SAIDA
+
+                                                                                           No: 000.325.177
+                                 SAO PAULO/SP                                               SERIE: 001
+                                                                                                  PAGINA 1/2
+
+                                 CEP: 01001-000 FONE/FAX: (11) 3878-0308
+NATUREZA DA OPERACAO                                                                      CHAVE DE ACESSO PARA CONSULTA DE AUTENTICIDADE
+
+VENDA DE MERCADORIA                                                                       2126 0911 2223 3300 0181 5500 1000 3251 7712 7664 2560
+INSCRICAO ESTADUAL               INSC. EST. DO SUBST. TRIB.     CNPJ                      PROTOCOLO DE AUTORIZACAO DE USO
+
+122105303                                                       11.222.333/0001-81        421260038218363 29/09/2026 09:04:59
+DESTINATARIO / REMETENTE
+NOME / RAZAO SOCIAL                                                       CNPJ/CPF                   DATA EMISSAO
+
+CONSTRUTORA EXEMPLO LTDA                                                  11.444.777/0001-61         29/09/2026
+ENDERECO                                                                  BAIRRO / DISTRITO          CEP
+
+AVENIDA B, No 923                                                         CENTRO                     04001-000
+CALCULO DO IMPOSTO
+BC ICMS                      VALOR DO ICMS            BC ICMS ST          VALOR DO ICMS ST   VALOR DOS PRODUTOS
+
+                     69,30             15,94                   732,13                 7,24              801,43
+VALOR DO FRETE               VALOR DO SEGURO          DESCONTO            DESP ACESSORIAS    VALOR TOTAL DA NOTA
+
+                      0,00              0,00                     7,24                36,87              838,30
+DADOS ADICIONAIS
+INFORMACOES COMPLEMENTARES                                                RESERVADO AO FISCO
+401234 240 R$7.24 30 / 60 / 90 DIAS - PAGAMENTO EM TRES PARCELAS
+DESCONTO DE ACORDO COM PORTARIA 301/2018: R$7.24

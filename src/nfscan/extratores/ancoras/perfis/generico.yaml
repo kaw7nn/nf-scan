@@ -13,22 +13,38 @@ campos:
     regex:
       - "CNPJ[:\\s]*(\\d{2}[.\\s]?\\d{3}[.\\s]?\\d{3}[/\\s]?\\d{4}[-\\s]?\\d{2})"
   emitente.inscricao_estadual:
+    tipo: inteiro
+    coluna:
+      - "INSCRICAO ESTADUAL"
     regex:
       - "INSCRI[CÇ][AÃ]O\\s+ESTADUAL[:\\s]*([\\d.\\-/]{6,20})"
   documento.natureza_operacao:
+    tipo: texto
+    coluna:
+      - "NATUREZA DA OPERACAO"
     regex:
       - "NATUREZA\\s+DA\\s+OPERA[CÇ][AÃ]O\\s*\\n\\s*(.+)"
+  # O dois-pontos é o que separa o número da nota do número do logradouro:
+  # o leiaute imprime "Nº: 000.325.177", e endereço imprime "Nº 1291".
   documento.numero:
     regex:
-      - "N[\u00daU]MERO[:\\s]*([\\d.]{1,13})"
-      - "N[o\u00b0\u00ba]\\s*(\\d{1,9})\\b"
+      - "N[ÚU]MERO\\s*:?\\s*([\\d.]{1,13})"
+      - "N[ºo°]\\s*:\\s*([\\d.]{1,13})"
   documento.serie:
     regex:
       - "S[EÉ]RIE[:\\s]*(\\d{1,3})"
   # Só com o rótulo de emissão. O fallback "primeira data do documento" pegava
   # o vencimento da duplicata ou o carimbo de impressão e reportava como data
   # de emissão, sem aviso. Melhor campo ausente que data errada.
+  # Só com o rótulo de emissão. O fallback "primeira data do documento" pegava
+  # o vencimento da duplicata ou o carimbo de impressão e reportava como data
+  # de emissão, sem aviso. Melhor campo ausente que data errada.
   documento.data_emissao:
+    tipo: data
+    coluna:
+      - "DATA EMISSAO"
+      - "DATA DA EMISSAO"
+      - "DATA DE EMISSAO"
     regex:
       - "DATA\\s+D[AE]\\s+EMISS[AÃ]O[\\s\\S]{0,160}?(\\d{2}/\\d{2}/\\d{4})"
       - "EMISS[AÃ]O[:\\s]*(\\d{2}/\\d{2}/\\d{4})"
@@ -40,6 +56,7 @@ campos:
   totais.valor_produtos:
     coluna:
       - "VALOR TOTAL DOS PRODUTOS"
+      - "VALOR DOS PRODUTOS"
     regex:
       - "VALOR\\s+TOTAL\\s+DOS\\s+PRODUTOS[^\\d\\n]{0,120}([\\d.]*\\d,\\d{2})"
   totais.frete:
@@ -65,7 +82,36 @@ campos:
   tributos.icms_base:
     coluna:
       - "BASE DE CALCULO DO ICMS"
-      - "BASE DE CÁLCULO DO ICMS"
+      - "BC ICMS"
   informacoes_adicionais:
     regex:
+      - "INFORMA[CÇ][OÕ]ES\\s+COMPLEMENTARES[^\\n]*\\n\\s*(\\S.*)"
       - "DADOS\\s+ADICIONAIS\\s*\\n\\s*(.+)"
+
+  # O nome do emitente nao tem rotulo no corpo do DANFE. O canhoto tem, e a
+  # frase e padronizada pelo leiaute.
+  emitente.razao_social:
+    regex:
+      - "RECEBEMOS\\s+DE\\s+(.+?)\\s+OS\\s+PRODUTOS"
+  destinatario.razao_social:
+    tipo: texto
+    coluna:
+      - "NOME / RAZAO SOCIAL"
+      - "NOME/RAZAO SOCIAL"
+  destinatario.cnpj:
+    tipo: documento
+    coluna:
+      - "CNPJ/CPF"
+      - "CNPJ / CPF"
+  # Somam ao total da nota: sem eles a conferencia acusa divergencia falsa.
+  totais.icms_st:
+    coluna:
+      - "VALOR DO ICMS ST"
+  totais.ipi:
+    coluna:
+      - "VALOR DO IPI"
+  totais.outras_despesas:
+    coluna:
+      - "DESP ACESSORIAS"
+      - "DESPESAS ACESSORIAS"
+      - "OUTRAS DESPESAS"

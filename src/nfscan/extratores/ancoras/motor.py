@@ -50,12 +50,45 @@ _MINIMO_PALAVRAS_CABECALHO = 2
 _CELULA = re.compile(r"\S(?:.*?\S)?(?=\s{2,}|$)")
 
 
+# O que conta como valor, por tipo de campo. Sob os rótulos de um DANFE ficam
+# também texto, data, CNPJ e inteiro simples — não só dinheiro —, e procurar
+# sempre por dinheiro fazia oito campos sumirem em silêncio.
+_PADRAO_POR_TIPO: dict[str, re.Pattern[str]] = {
+    "moeda": _NUMERO_BR,
+    "data": re.compile(r"\d{2}/\d{2}/\d{4}"),
+    "documento": re.compile(r"\d{2}\.?\d{3}\.?\d{3}/\d{4}-?\d{2}|\d{3}\.?\d{3}\.?\d{3}-?\d{2}"),
+    "inteiro": re.compile(r"\b\d{4,}\b"),
+}
+# Tabela de dobra de acento, 1 para 1: um DANFE escreve "NATUREZA DA OPERAÇÃO"
+# e outro "NATUREZA DA OPERACAO". Enumerar variantes no perfil é frágil, e
+# unicodedata.normalize mudaria o comprimento da linha — o que destruiria as
+# posições de coluna de que a âncora depende.
+_SEM_ACENTO = str.maketrans(
+    "áàâãäéèêëíìîïóòôõöúùûüçñÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇÑ",
+    "aaaaaeeeeiiiiooooouuuucnAAAAAEEEEIIIIOOOOOUUUUCN",
+)
+
+
+def dobrar(texto: str) -> str:
+    """Caixa alta sem acento, preservando o comprimento e as colunas."""
+    return texto.translate(_SEM_ACENTO).upper()
+
+
+TIPO_TEXTO = "texto"
+TIPO_PADRAO = "moeda"
+
+
 @dataclass(frozen=True, slots=True)
 class Ancora:
-    """Como achar um campo: por expressão, por coluna, ou por ambos."""
+    """Como achar um campo: por expressão, por coluna, ou por ambos.
+
+    ``tipo`` diz o que conta como valor sob o rótulo: ``moeda`` (padrão),
+    ``data``, ``documento``, ``inteiro`` ou ``texto``.
+    """
 
     regex: tuple[str, ...] = ()
     coluna: tuple[str, ...] = ()
+    tipo: str = TIPO_PADRAO
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,6 +106,7 @@ def _ancora_de(bruto: object) -> Ancora:
         return Ancora(
             regex=tuple(bruto.get("regex") or ()),
             coluna=tuple(bruto.get("coluna") or ()),
+            tipo=str(bruto.get("tipo") or TIPO_PADRAO),
         )
     if isinstance(bruto, list):
         # Forma abreviada: uma lista solta é entendida como expressões.
@@ -104,13 +138,13 @@ def escolher_perfil(texto: str, perfis: list[Perfil]) -> Perfil:
     Sem perfil cadastrado o genérico ainda roda, com confiança menor: perfil é
     otimização, não requisito.
     """
-    alto = texto.upper()
+    alto = dobrar(texto)
     melhor: Perfil | None = None
     melhor_pontos = 0
     for perfil in perfis:
         if not perfil.marcadores:
             continue
-        pontos = sum(1 for marcador in perfil.marcadores if marcador.upper() in alto)
+        pontos = sum(1 for marcador in perfil.marcadores if dobrar(marcador) in alto)
         if pontos > melhor_pontos:
             melhor, melhor_pontos = perfil, pontos
     if melhor is not None:
@@ -128,7 +162,37 @@ def _e_cabecalho(linha: str) -> bool:
     return len(_PALAVRA.findall(linha)) >= _MINIMO_PALAVRAS_CABECALHO
 
 
-def valor_na_coluna(texto: str, rotulo: str) -> str | None:
+def _celula_na_coluna(
+    linhas: list[str], indice: int, posicao: int, comprimento: int
+) -> str | None:
+    """Valor de TEXTO sob o rótulo: a célula correspondente da linha abaixo.
+
+    Texto não tem formato reconhecível por expressão, então a posição é a única
+    pista. Vale a célula de mesmo índice quando as contagens batem, e a de maior
+    sobreposição quando não batem — uma coluna vazia desalinha a contagem.
+    """
+    celulas = _celulas(linhas[indice])
+    posicao_na_tabela = _indice_da_celula(celulas, posicao)
+    inicio = posicao - TOLERANCIA_COLUNA
+    fim = posicao + comprimento + TOLERANCIA_COLUNA
+
+    for seguinte in linhas[indice + 1 : indice + 1 + LINHAS_ABAIXO]:
+        abaixo = _celulas(seguinte)
+        if not abaixo:
+            continue
+        if posicao_na_tabela is not None and len(abaixo) == len(celulas):
+            comeco, termino = abaixo[posicao_na_tabela]
+            return seguinte[comeco:termino].strip() or None
+        melhor = max(
+            abaixo, key=lambda faixa: min(faixa[1], fim) - max(faixa[0], inicio)
+        )
+        if min(melhor[1], fim) - max(melhor[0], inicio) > 0:
+            return seguinte[melhor[0] : melhor[1]].strip() or None
+        return None
+    return None
+
+
+def valor_na_coluna(texto: str, rotulo: str, tipo: str = TIPO_PADRAO) -> str | None:
     """Lê o número alinhado sob o rótulo, na linha de valores dessa tabela.
 
     Devolve o primeiro número cuja faixa horizontal se sobrepõe à do rótulo,
@@ -141,12 +205,17 @@ def valor_na_coluna(texto: str, rotulo: str) -> str | None:
     plausível e errado — pior que campo ausente em documento fiscal.
     """
     linhas = texto.splitlines()
-    alvo = rotulo.upper()
+    alvo = dobrar(rotulo)
     for indice, linha in enumerate(linhas):
-        posicao = linha.upper().find(alvo)
+        posicao = dobrar(linha).find(alvo)
         if posicao == -1:
             continue
-        valor = _abaixo_do_rotulo(linhas, indice, posicao, len(alvo))
+        if tipo == TIPO_TEXTO:
+            valor = _celula_na_coluna(linhas, indice, posicao, len(alvo))
+        else:
+            valor = _abaixo_do_rotulo(
+                linhas, indice, posicao, len(alvo), _PADRAO_POR_TIPO[tipo]
+            )
         if valor is not None:
             return valor
         # Esta ocorrência do rótulo não tinha valor sob ela — uma menção em
@@ -191,7 +260,11 @@ def _por_sobreposicao(
 
 
 def _abaixo_do_rotulo(
-    linhas: list[str], indice: int, posicao: int, comprimento: int
+    linhas: list[str],
+    indice: int,
+    posicao: int,
+    comprimento: int,
+    padrao: re.Pattern[str] = _NUMERO_BR,
 ) -> str | None:
     """Procura o valor da coluna sob uma ocorrência específica do rótulo.
 
@@ -209,10 +282,12 @@ def _abaixo_do_rotulo(
     posicao_na_tabela = _indice_da_celula(celulas, posicao)
 
     for seguinte in linhas[indice + 1 : indice + 1 + LINHAS_ABAIXO]:
-        achados = list(_NUMERO_BR.finditer(seguinte))
+        achados = list(padrao.finditer(seguinte))
         if not achados:
-            if _e_cabecalho(seguinte):
-                # Começou outra tabela antes de aparecer valor.
+            # A barreira de cabeçalho só vale para dinheiro: ela reconhece uma
+            # linha "sem número e com palavras", que é exatamente a forma de um
+            # valor de texto ou de uma linha com data e CNPJ.
+            if padrao is _NUMERO_BR and _e_cabecalho(seguinte):
                 return None
             continue
         if posicao_na_tabela is not None and len(achados) == len(celulas):
@@ -231,7 +306,11 @@ def aplicar(perfil: Perfil, texto: str) -> dict[str, str]:
     encontrados: dict[str, str] = {}
     for campo, ancora in perfil.campos.items():
         achado = next(
-            (valor for rotulo in ancora.coluna if (valor := valor_na_coluna(texto, rotulo))),
+            (
+                valor
+                for rotulo in ancora.coluna
+                if (valor := valor_na_coluna(texto, rotulo, ancora.tipo))
+            ),
             None,
         )
         if achado is None:
