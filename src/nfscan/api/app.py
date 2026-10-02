@@ -12,6 +12,7 @@ from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, UploadFile, status
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 
 from nfscan import __version__
 from nfscan.api.diagnostico import idiomas_tesseract, versao_tesseract
@@ -82,7 +83,13 @@ def criar_app() -> FastAPI:
         _recusar_se_grande(arquivo)
         conteudo = await arquivo.read()
         try:
-            nota = parse(conteudo, arquivo.filename or "sem-nome", arquivo.content_type)
+            # Fora do event loop: parse roda pdftotext, pdftoppm e Tesseract
+            # como subprocessos, com dezenas de segundos de teto. Chamá-lo
+            # direto serializaria o serviço inteiro, inclusive o /healthz que o
+            # orquestrador usa para decidir se reinicia o container.
+            nota = await run_in_threadpool(
+                parse, conteudo, arquivo.filename or "sem-nome", arquivo.content_type
+            )
         except ArquivoGrande as erro:
             raise HTTPException(
                 status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=str(erro)
@@ -108,7 +115,9 @@ def criar_app() -> FastAPI:
             _recusar_se_grande(item)
             conteudo = await item.read()
             try:
-                lidas = parse_entrada(conteudo, item.filename or "sem-nome", item.content_type)
+                lidas = await run_in_threadpool(
+                    parse_entrada, conteudo, item.filename or "sem-nome", item.content_type
+                )
             except ArquivoGrande as erro:
                 raise HTTPException(
                     status_code=status.HTTP_413_CONTENT_TOO_LARGE,
