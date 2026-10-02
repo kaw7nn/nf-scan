@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+from functools import lru_cache
 
 AUSENTE = "ausente"
 _TIMEOUT = 5
@@ -23,10 +24,16 @@ def _rodar(caminho: str, *argumentos: str) -> str:
     return saida.stdout or saida.stderr or ""
 
 
+@lru_cache(maxsize=1)
 def idiomas_tesseract() -> tuple[str, ...]:
     """Idiomas de OCR instalados, pela saída de ``tesseract --list-langs``.
 
     A primeira linha da saída é um cabeçalho descritivo, não um idioma.
+
+    Em cache: o pacote de idioma é assado na imagem e não muda em tempo de
+    execução, enquanto o ``/healthz`` é consultado a cada poucos segundos para
+    sempre. Pagar dois ``fork`` por sonda é desperdício, e sob pressão de
+    memória um ``fork`` que falha derruba justamente a verificação de saúde.
     """
     caminho = shutil.which("tesseract")
     if caminho is None:
@@ -39,21 +46,14 @@ def idiomas_tesseract() -> tuple[str, ...]:
     )
 
 
+@lru_cache(maxsize=1)
 def versao_tesseract() -> str:
-    """Primeira linha de ``tesseract --version``, ou ``"ausente"``."""
+    """Primeira linha de ``tesseract --version``, ou ``"ausente"``.
+
+    Em cache pelo mesmo motivo de :func:`idiomas_tesseract`.
+    """
     caminho = shutil.which("tesseract")
     if caminho is None:
         return AUSENTE
-    try:
-        saida = subprocess.run(  # noqa: S603
-            [caminho, "--version"],
-            capture_output=True,
-            text=True,
-            timeout=_TIMEOUT,
-            check=False,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return AUSENTE
-    bruto = saida.stdout or saida.stderr
-    linhas = bruto.splitlines() if bruto else []
+    linhas = _rodar(caminho, "--version").splitlines()
     return linhas[0].strip() if linhas else AUSENTE
