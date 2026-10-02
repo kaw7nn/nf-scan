@@ -14,7 +14,6 @@ from decimal import Decimal
 
 from nfscan.detect.dialeto import Dialeto
 from nfscan.extratores.pdf_texto import extrair_de_texto
-from nfscan.modelo import ArquivoOrigem
 from nfscan.modelo.coletor import CONFIANCA
 from nfscan.validar import validar
 
