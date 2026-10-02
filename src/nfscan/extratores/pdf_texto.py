@@ -15,7 +15,7 @@ import time
 from decimal import Decimal
 
 from nfscan.detect.dialeto import Dialeto
-from nfscan.dominio.chave import ChaveAcesso, extrair_chave
+from nfscan.dominio.chave import ChaveAcesso, chave_rejeitada, extrair_chave
 from nfscan.dominio.documentos import normalizar_cnpj_cpf
 from nfscan.dominio.numeros import para_data_hora, para_decimal
 from nfscan.dominio.textos import limpar_texto
@@ -43,6 +43,18 @@ def _sem_zeros(valor: str | None) -> str | None:
         return None
     limpo = valor.lstrip("0")
     return limpo or "0"
+
+
+def _numero_normalizado(valor: str | None) -> str | None:
+    """Descarta pontuação de milhar e zeros à esquerda do número impresso.
+
+    Emissores imprimem o número de formas diferentes: ``12345``, ``000.012.345``,
+    ``000012345``. Todas designam a mesma nota, e o consumidor precisa de uma.
+    """
+    if valor is None:
+        return None
+    digitos = "".join(caractere for caractere in valor if caractere.isdigit())
+    return _sem_zeros(digitos) if digitos else None
 
 
 def _dec(bruto: str | None) -> Decimal | None:
@@ -105,6 +117,8 @@ def extrair_de_texto(
     tipo: TipoDocumento = "desconhecido"
     if chave is not None:
         modelo, tipo = _campos_da_chave(chave, coletor, peso_chave)
+    else:
+        _relatar_chave_rejeitada(texto, problemas)
 
     perfil = escolher_perfil(texto, carregar_perfis())
     valores = aplicar(perfil, texto)
@@ -122,7 +136,9 @@ def extrair_de_texto(
         numero=_sem_zeros(chave.numero)
         if chave is not None
         else coletor.registrar(
-            "documento.numero", do_perfil("documento.numero"), f"regex:{perfil.nome}:numero"
+            "documento.numero",
+            _numero_normalizado(do_perfil("documento.numero")),
+            f"regex:{perfil.nome}:numero",
         ),
         serie=_sem_zeros(chave.serie)
         if chave is not None
@@ -165,6 +181,31 @@ def extrair_de_texto(
 
     return _montar(
         documento, emitente, totais, adicionais, coletor, problemas, arquivo, dialeto, motor, inicio
+    )
+
+
+def _relatar_chave_rejeitada(texto: str, problemas: list[Problema]) -> None:
+    """Explica a ausência da chave quando havia uma candidata com DV quebrado.
+
+    Sem isso o campo some em silêncio, e quem integra não consegue distinguir
+    "o documento não traz chave" de "a chave está corrompida" — que pedem ações
+    diferentes: a primeira é limitação do formato, a segunda é documento
+    suspeito ou leitura ruim.
+    """
+    rejeitada = chave_rejeitada(texto)
+    if rejeitada is None:
+        return
+    problemas.append(
+        Problema(
+            severidade="erro",
+            codigo="CHAVE_DV_INVALIDO",
+            campo="documento.chave_acesso",
+            mensagem=(
+                f"Foi encontrada uma sequência de 44 dígitos cujo dígito verificador "
+                f"não confere, e por isso ela não foi aceita como chave de acesso: "
+                f"{rejeitada}."
+            ),
+        )
     )
 
 

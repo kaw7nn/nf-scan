@@ -20,7 +20,8 @@ campos:
       - "NATUREZA\\s+DA\\s+OPERA[CÇ][AÃ]O\\s*\\n\\s*(.+)"
   documento.numero:
     regex:
-      - "N[o°º]\\s*(\\d{1,9})\\b"
+      - "N[\u00daU]MERO[:\\s]*([\\d.]{1,13})"
+      - "N[o\u00b0\u00ba]\\s*(\\d{1,9})\\b"
   documento.serie:
     regex:
       - "S[EÉ]RIE[:\\s]*(\\d{1,3})"
@@ -35,24 +36,32 @@ campos:
     coluna:
       - "VALOR TOTAL DA NOTA"
     regex:
-      - "VALOR\\s+TOTAL\\s+DA\\s+NOTA[:\\s]*([\\d.]*\\d,\\d{2})"
+      - "VALOR\\s+TOTAL\\s+DA\\s+NOTA[^\\d\\n]{0,120}([\\d.]*\\d,\\d{2})"
   totais.valor_produtos:
     coluna:
       - "VALOR TOTAL DOS PRODUTOS"
     regex:
-      - "VALOR\\s+TOTAL\\s+DOS\\s+PRODUTOS[:\\s]*([\\d.]*\\d,\\d{2})"
+      - "VALOR\\s+TOTAL\\s+DOS\\s+PRODUTOS[^\\d\\n]{0,120}([\\d.]*\\d,\\d{2})"
   totais.frete:
     coluna:
       - "VALOR DO FRETE"
+    regex:
+      - "VALOR\\s+DO\\s+FRETE[^\\d\\n]{0,120}([\\d.]*\\d,\\d{2})"
   totais.seguro:
     coluna:
       - "VALOR DO SEGURO"
+    regex:
+      - "VALOR\\s+DO\\s+SEGURO[^\\d\\n]{0,120}([\\d.]*\\d,\\d{2})"
   totais.desconto:
     coluna:
       - "DESCONTO"
+    regex:
+      - "DESCONTO[^\\d\\n]{0,120}([\\d.]*\\d,\\d{2})"
   tributos.icms_valor:
     coluna:
       - "VALOR DO ICMS"
+    regex:
+      - "VALOR\\s+DO\\s+ICMS[^\\d\\n]{0,120}([\\d.]*\\d,\\d{2})"
   tributos.icms_base:
     coluna:
       - "BASE DE CALCULO DO ICMS"

@@ -110,6 +110,23 @@ def parse_chave(valor: str) -> ChaveAcesso:
     )
 
 
+def chave_rejeitada(texto: str) -> str | None:
+    """Primeira sequência de 44 dígitos do texto cujo DV não fecha.
+
+    Existe para o extrator poder dizer *por que* a chave faltou. Silêncio aqui
+    deixa quem integra adivinhando entre "o documento não traz chave" e "a
+    chave está corrompida" — que pedem ações diferentes.
+    """
+    alvo = texto or ""
+    posicao = 0
+    while (achado := _CANDIDATA.search(alvo, posicao)) is not None:
+        digitos = _NAO_DIGITO.sub("", achado.group())
+        if len(digitos) == TAMANHO and calcular_dv(digitos[:-1]) != digitos[-1]:
+            return digitos
+        posicao = achado.start() + 1
+    return None
+
+
 def extrair_chave(texto: str) -> ChaveAcesso | None:
     """Procura no texto a primeira sequência de 44 dígitos com DV válido.
 
