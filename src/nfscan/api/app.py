@@ -8,8 +8,11 @@ verdade sai como 4xx.
 
 from __future__ import annotations
 
+import os
+from contextlib import asynccontextmanager
 from typing import Any
 
+import anyio
 from fastapi import Depends, FastAPI, HTTPException, UploadFile, status
 from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
@@ -23,6 +26,20 @@ from nfscan.modelo import NotaFiscal
 from nfscan.pipeline import LIMITE_BYTES, ArquivoGrande, parse, parse_entrada
 
 MAXIMO_LOTE = 50
+
+VARIAVEL_MAX_LEITURAS = "NFSCAN_MAX_LEITURAS"
+# Teto de leituras pesadas em paralelo. Cada uma renderiza páginas a 300 dpi e
+# roda Tesseract, então o limite real é CPU e memória, não conexões: medido,
+# seis leituras simultâneas saturaram sete núcleos. Sem teto, o threadpool
+# aceitaria dezenas e o container morreria por memória antes de responder.
+MAXIMO_LEITURAS_PADRAO = 4
+
+
+def _maximo_leituras() -> int:
+    bruto = os.environ.get(VARIAVEL_MAX_LEITURAS, "")
+    if bruto.strip().isdigit() and int(bruto) > 0:
+        return int(bruto)
+    return min(os.cpu_count() or 1, MAXIMO_LEITURAS_PADRAO)
 
 
 def _recusar_se_grande(arquivo: UploadFile) -> None:
@@ -45,6 +62,14 @@ def _recusar_se_grande(arquivo: UploadFile) -> None:
 def criar_app() -> FastAPI:
     """Monta a aplicação. Função em vez de módulo para os testes isolarem estado."""
     configurar()
+    porteiro = anyio.Semaphore(_maximo_leituras())
+
+    @asynccontextmanager
+    async def leitura_limitada() -> Any:
+        """Serializa o excesso de leituras em vez de deixar o container morrer."""
+        async with porteiro:
+            yield
+
     app = FastAPI(
         title="NF Scan",
         version=__version__,
@@ -87,9 +112,10 @@ def criar_app() -> FastAPI:
             # como subprocessos, com dezenas de segundos de teto. Chamá-lo
             # direto serializaria o serviço inteiro, inclusive o /healthz que o
             # orquestrador usa para decidir se reinicia o container.
-            nota = await run_in_threadpool(
-                parse, conteudo, arquivo.filename or "sem-nome", arquivo.content_type
-            )
+            async with leitura_limitada():
+                nota = await run_in_threadpool(
+                    parse, conteudo, arquivo.filename or "sem-nome", arquivo.content_type
+                )
         except ArquivoGrande as erro:
             raise HTTPException(
                 status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=str(erro)
@@ -115,9 +141,10 @@ def criar_app() -> FastAPI:
             _recusar_se_grande(item)
             conteudo = await item.read()
             try:
-                lidas = await run_in_threadpool(
-                    parse_entrada, conteudo, item.filename or "sem-nome", item.content_type
-                )
+                async with leitura_limitada():
+                    lidas = await run_in_threadpool(
+                        parse_entrada, conteudo, item.filename or "sem-nome", item.content_type
+                    )
             except ArquivoGrande as erro:
                 raise HTTPException(
                     status_code=status.HTTP_413_CONTENT_TOO_LARGE,
@@ -140,6 +167,7 @@ def criar_app() -> FastAPI:
             "dialetos": sorted(dialeto.value for dialeto in dialetos_suportados()),
             "limite_bytes": LIMITE_BYTES,
             "maximo_lote": MAXIMO_LOTE,
+            "maximo_leituras_simultaneas": _maximo_leituras(),
         }
 
     return app

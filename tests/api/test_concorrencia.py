@@ -51,7 +51,8 @@ def parse_lento(monkeypatch, ler_fixture):
 
 
 @pytest.mark.anyio
-async def test_leituras_simultaneas_nao_serializam(parse_lento) -> None:
+async def test_leituras_simultaneas_nao_serializam(parse_lento, monkeypatch) -> None:
+    monkeypatch.setenv("NFSCAN_MAX_LEITURAS", "4")
     app = criar_app()
     transporte = ASGITransport(app=app)
     async with AsyncClient(transport=transporte, base_url="http://teste") as cliente:
@@ -72,4 +73,34 @@ async def test_leituras_simultaneas_nao_serializam(parse_lento) -> None:
     # Serializado, três leituras de 0.3s levariam ~0.9s. Em paralelo, ~0.3s.
     assert decorrido < BLOQUEIO * 2, (
         f"as leituras serializaram: {decorrido:.2f}s para três de {BLOQUEIO}s"
+    )
+
+
+@pytest.mark.anyio
+async def test_concorrencia_e_limitada_pela_configuracao(parse_lento, monkeypatch) -> None:
+    """Paralelismo sem teto num VPS pequeno é OOM, não throughput.
+
+    Cada leitura de foto renderiza páginas a 300 dpi e roda Tesseract. Sem
+    limite, o threadpool aceitaria dezenas ao mesmo tempo e o container morre
+    por memória antes de responder.
+    """
+    monkeypatch.setenv("NFSCAN_MAX_LEITURAS", "1")
+    app = criar_app()
+    transporte = ASGITransport(app=app)
+    async with AsyncClient(transport=transporte, base_url="http://teste") as cliente:
+
+        async def ler() -> int:
+            resposta = await cliente.post(
+                "/v1/notas",
+                files={"arquivo": ("n.xml", io.BytesIO(b"<x/>"), "application/xml")},
+                headers={"X-API-Key": CHAVE},
+            )
+            return resposta.status_code
+
+        inicio = time.perf_counter()
+        assert await asyncio.gather(ler(), ler()) == [200, 200]
+        decorrido = time.perf_counter() - inicio
+
+    assert decorrido >= BLOQUEIO * 1.8, (
+        f"com limite 1 as leituras deveriam serializar, levaram {decorrido:.2f}s"
     )
