@@ -136,8 +136,14 @@ docker build -t nfscan .
 docker run --rm -e NFSCAN_API_KEYS=minha-chave -p 8000:8000 nfscan
 ```
 
-`NFSCAN_API_KEYS` aceita várias chaves separadas por vírgula. Sem ela, as rotas
-protegidas respondem `503`.
+### Variáveis de ambiente
+
+| Variável | Obrigatória | Padrão | Para quê |
+|---|---|---|---|
+| `NFSCAN_API_KEYS` | **sim** | — | Chaves aceitas no header `X-API-Key`, separadas por vírgula. Sem ela, as rotas protegidas respondem `503` |
+| `NFSCAN_MAX_LEITURAS` | não | `min(núcleos, 4)` | Teto de leituras pesadas em paralelo. Cada uma renderiza páginas a 300 dpi e roda Tesseract, então o limite real é CPU e memória. Num VPS de 1 a 2 vCPU, use `1` ou `2` |
+
+O valor efetivo de `NFSCAN_MAX_LEITURAS` aparece em `GET /v1/dialetos`.
 
 ## Endpoints
 
@@ -190,6 +196,10 @@ ruim.
 PDF-imagem no OCR, a 300 dpi, com 60 s de teto por página. Uma entrada de ZIP
 acima do limite vira nota com `ENTRADA_GRANDE_DEMAIS` e **não** descarta as
 demais notas do pacote.
+
+A leitura roda fora do event loop, então uma foto demorada não bloqueia as
+outras requisições nem o `/healthz`. O excesso acima de `NFSCAN_MAX_LEITURAS`
+entra em fila em vez de derrubar o processo por memória.
 
 ## Como integrar
 
